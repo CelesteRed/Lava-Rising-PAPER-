@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -15,8 +16,10 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.StructureType;
 import org.bukkit.World;
 import org.bukkit.WorldBorder;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Item;
@@ -42,7 +45,7 @@ public class LavaRisingManager {
     private static final boolean DEFAULT_GIVE_DIRT = true;
     private static final boolean DEFAULT_PVP_AT_SURFACE = true;
     private static final boolean DEFAULT_BORDER_DAMAGE = true;
-    private static final int DEFAULT_NO_MORE_BOTTOM_DWELLERS_SECONDS = 60;
+    private static final int DEFAULT_NO_MORE_BOTTOM_DWELLERS_SECONDS = 0;
     private static final int DEFAULT_BUILDING_BLOCK_GIVE_RATE = 16;
     private static final int MIN_ARENA_DIAMETER = 3;
     private static final int MAX_ARENA_DIAMETER = 1000;
@@ -59,7 +62,56 @@ public class LavaRisingManager {
     private static final int MIN_BUILDING_BLOCK_GIVE_RATE = 0;
     private static final int MAX_BUILDING_BLOCK_GIVE_RATE = 64;
     private static final int MAX_BUILDING_BLOCKS_HELD = 64;
-    private static final double SAND_ROUND_CHANCE = 0.10D;
+    private static final int DEFAULT_SAND_MAYHEM_CHANCE_PERCENT = 10;
+    private static final int DEFAULT_VILLAGE_START_CHANCE_PERCENT = 10;
+    private static final int MIN_SAND_MAYHEM_CHANCE_PERCENT = 0;
+    private static final int MAX_SAND_MAYHEM_CHANCE_PERCENT = 100;
+    private static final int MIN_VILLAGE_START_CHANCE_PERCENT = 0;
+    private static final int MAX_VILLAGE_START_CHANCE_PERCENT = 100;
+    private static final double DEFAULT_LOBBY_X = 0.5D;
+    private static final double DEFAULT_LOBBY_Z = 0.5D;
+    private static final int DEFAULT_LOBBY_RADIUS = 32;
+    private static final int DEFAULT_MIN_PLAYERS_TO_START = 2;
+    private static final int DEFAULT_ARENA_MIN_DISTANCE_FROM_LOBBY = 512;
+    private static final int DEFAULT_ARENA_MIN_DISTANCE_FROM_USED = 512;
+    private static final int DEFAULT_ARENA_SEARCH_MIN_RADIUS = 700;
+    private static final int DEFAULT_ARENA_SEARCH_MAX_RADIUS = 5000;
+    private static final int DEFAULT_ARENA_SEARCH_ATTEMPTS = 96;
+    private static final int DEFAULT_ARENA_TREE_CHECK_RADIUS = 32;
+    private static final int DEFAULT_VILLAGE_SEARCH_RADIUS_CHUNKS = 320;
+    private static final int DEFAULT_VILLAGE_SEARCH_ATTEMPTS = 12;
+    private static final int MIN_LOBBY_RADIUS = 4;
+    private static final int MAX_LOBBY_RADIUS = 256;
+    private static final int MIN_PLAYERS_TO_START = 1;
+    private static final int MAX_PLAYERS_TO_START = 100;
+    private static final int MIN_ARENA_DISTANCE = 128;
+    private static final int MAX_ARENA_DISTANCE = 100000;
+    private static final int MIN_ARENA_SEARCH_ATTEMPTS = 1;
+    private static final int MAX_ARENA_SEARCH_ATTEMPTS = 1000;
+    private static final int MIN_ARENA_TREE_CHECK_RADIUS = 0;
+    private static final int MAX_ARENA_TREE_CHECK_RADIUS = 128;
+    private static final int MIN_VILLAGE_SEARCH_RADIUS_CHUNKS = 16;
+    private static final int MAX_VILLAGE_SEARCH_RADIUS_CHUNKS = 2000;
+    private static final int MIN_VILLAGE_SEARCH_ATTEMPTS = 1;
+    private static final int MAX_VILLAGE_SEARCH_ATTEMPTS = 100;
+    private static final List<String> DEFAULT_ARENA_BIOME_WHITELIST = List.of(
+            "FOREST",
+            "BIRCH_FOREST",
+            "OLD_GROWTH_BIRCH_FOREST",
+            "FLOWER_FOREST",
+            "DARK_FOREST",
+            "PLAINS",
+            "SUNFLOWER_PLAINS",
+            "SAVANNA",
+            "SAVANNA_PLATEAU",
+            "TAIGA",
+            "OLD_GROWTH_PINE_TAIGA",
+            "OLD_GROWTH_SPRUCE_TAIGA",
+            "SPARSE_JUNGLE",
+            "JUNGLE",
+            "CHERRY_GROVE",
+            "MEADOW",
+            "WINDSWEPT_FOREST");
     private static final double BORDER_DAMAGE_BUFFER = 0.0D;
     private static final double BORDER_DAMAGE_AMOUNT = 1.0D;
     private static final String CONFIG_ARENA_DIAMETER = "arenaDiameter";
@@ -74,10 +126,33 @@ public class LavaRisingManager {
     private static final String CONFIG_BORDER_DAMAGE = "borderDamage";
     private static final String CONFIG_NO_MORE_BOTTOM_DWELLERS = "noMoreBottomDwellers";
     private static final String CONFIG_BUILDING_BLOCK_GIVE_RATE = "buildingBlockGiveRate";
+    private static final String CONFIG_SAND_MAYHEM_CHANCE = "sandMayhemChance";
+    private static final String CONFIG_VILLAGE_START_CHANCE = "villageStartChance";
+    private static final String CONFIG_LOBBY_X = "lobby.x";
+    private static final String CONFIG_LOBBY_Z = "lobby.z";
+    private static final String CONFIG_LOBBY_RADIUS = "lobby.radius";
+    private static final String CONFIG_MIN_PLAYERS_TO_START = "minPlayersToStart";
+    private static final String CONFIG_ARENA_SELECTION = "arenaSelection";
+    private static final String CONFIG_ARENA_BIOME_WHITELIST = CONFIG_ARENA_SELECTION + ".biomeWhitelist";
+    private static final String CONFIG_ARENA_MIN_DISTANCE_FROM_LOBBY =
+            CONFIG_ARENA_SELECTION + ".minDistanceFromLobby";
+    private static final String CONFIG_ARENA_MIN_DISTANCE_FROM_USED =
+            CONFIG_ARENA_SELECTION + ".minDistanceFromUsedArenas";
+    private static final String CONFIG_ARENA_SEARCH_MIN_RADIUS = CONFIG_ARENA_SELECTION + ".searchMinRadius";
+    private static final String CONFIG_ARENA_SEARCH_MAX_RADIUS = CONFIG_ARENA_SELECTION + ".searchMaxRadius";
+    private static final String CONFIG_ARENA_SEARCH_ATTEMPTS = CONFIG_ARENA_SELECTION + ".maxAttempts";
+    private static final String CONFIG_ARENA_TREE_CHECK_RADIUS = CONFIG_ARENA_SELECTION + ".treeCheckRadius";
+    private static final String CONFIG_VILLAGE_SEARCH_RADIUS_CHUNKS =
+            CONFIG_ARENA_SELECTION + ".villageSearchRadiusChunks";
+    private static final String CONFIG_VILLAGE_SEARCH_ATTEMPTS =
+            CONFIG_ARENA_SELECTION + ".villageSearchAttempts";
+    private static final String CONFIG_USED_ARENA_CENTERS = "usedArenaCenters";
 
     private GameState state = GameState.WAITING;
     private int currentY = START_LAVA_Y;
+    private final Random random = new Random();
     private final List<BukkitTask> activeTasks = new ArrayList<>();
+    private final Set<UUID> activePlayers = new HashSet<>();
     private final Set<UUID> waitingPlayers = new HashSet<>();
     private final LavaRisingPlugin plugin;
     private Double savedBorderSize;
@@ -97,6 +172,20 @@ public class LavaRisingManager {
     private int noMoreBottomDwellersSeconds;
     private int noMoreBottomDwellersClearSeconds;
     private int buildingBlockGiveRate;
+    private int sandMayhemChancePercent;
+    private int villageStartChancePercent;
+    private double lobbyX;
+    private double lobbyZ;
+    private int lobbyRadius;
+    private int minPlayersToStart;
+    private int arenaMinDistanceFromLobby;
+    private int arenaMinDistanceFromUsed;
+    private int arenaSearchMinRadius;
+    private int arenaSearchMaxRadius;
+    private int arenaSearchAttempts;
+    private int arenaTreeCheckRadius;
+    private int villageSearchRadiusChunks;
+    private int villageSearchAttempts;
     private boolean noMoreBottomDwellersActive;
     private boolean sandMayhemRound;
     private Material buildingBlockMaterial = Material.DIRT;
@@ -105,6 +194,9 @@ public class LavaRisingManager {
     private boolean giveDirt;
     private boolean pvpAtSurface;
     private boolean borderDamage;
+    private final Set<Biome> arenaBiomeWhitelist = new HashSet<>();
+    private final List<ArenaCenter> usedArenaCenters = new ArrayList<>();
+    private ArenaCenter currentArenaCenter;
 
     public LavaRisingManager(LavaRisingPlugin plugin) {
         this.plugin = plugin;
@@ -234,6 +326,38 @@ public class LavaRisingManager {
         return sandMayhemRound;
     }
 
+    public int getSandMayhemChancePercent() {
+        return sandMayhemChancePercent;
+    }
+
+    public int getVillageStartChancePercent() {
+        return villageStartChancePercent;
+    }
+
+    public int getLobbyPlayerCount() {
+        return getLobbyPlayers().size();
+    }
+
+    public int getMinPlayersToStart() {
+        return minPlayersToStart;
+    }
+
+    public String getArenaBiomeWhitelistLabel() {
+        return arenaBiomeWhitelist.stream()
+                .map(Biome::name)
+                .sorted()
+                .collect(Collectors.joining(", "));
+    }
+
+    public boolean isActivePlayer(UUID uuid) {
+        return activePlayers.contains(uuid);
+    }
+
+    public boolean hasOnlineAdmin() {
+        return plugin.getServer().getOnlinePlayers().stream()
+                .anyMatch(player -> player.isOp() || player.hasPermission("lavarising.use"));
+    }
+
     public LavaPhase setCurrentPhaseSpeedBypassSeconds(double seconds) {
         LavaPhase phase = getActiveLavaPhase();
         lavaPhaseSpeedOverrideTicks[phase.ordinal()] = secondsToTicks(seconds);
@@ -330,9 +454,7 @@ public class LavaRisingManager {
     }
 
     public void setNoMoreBottomDwellersSeconds(int seconds) {
-        noMoreBottomDwellersSeconds = clamp(seconds,
-                MIN_NO_MORE_BOTTOM_DWELLERS_SECONDS,
-                MAX_NO_MORE_BOTTOM_DWELLERS_SECONDS);
+        noMoreBottomDwellersSeconds = 0;
         plugin.getConfig().set(CONFIG_NO_MORE_BOTTOM_DWELLERS, noMoreBottomDwellersSeconds);
         plugin.saveConfig();
     }
@@ -345,6 +467,37 @@ public class LavaRisingManager {
         plugin.saveConfig();
     }
 
+    public void setSandMayhemChancePercent(int chancePercent) {
+        sandMayhemChancePercent = clamp(chancePercent,
+                MIN_SAND_MAYHEM_CHANCE_PERCENT,
+                MAX_SAND_MAYHEM_CHANCE_PERCENT);
+        plugin.getConfig().set(CONFIG_SAND_MAYHEM_CHANCE, sandMayhemChancePercent);
+        plugin.saveConfig();
+    }
+
+    public void setVillageStartChancePercent(int chancePercent) {
+        villageStartChancePercent = clamp(chancePercent,
+                MIN_VILLAGE_START_CHANCE_PERCENT,
+                MAX_VILLAGE_START_CHANCE_PERCENT);
+        plugin.getConfig().set(CONFIG_VILLAGE_START_CHANCE, villageStartChancePercent);
+        plugin.saveConfig();
+    }
+
+    public void setMinPlayersToStart(int players) {
+        minPlayersToStart = clamp(players, MIN_PLAYERS_TO_START, MAX_PLAYERS_TO_START);
+        plugin.getConfig().set(CONFIG_MIN_PLAYERS_TO_START, minPlayersToStart);
+        plugin.saveConfig();
+    }
+
+    public void setArenaBiomeWhitelistFromInput(String rawValue) {
+        Set<Biome> parsed = parseBiomeWhitelist(List.of(rawValue.split(",")));
+        arenaBiomeWhitelist.clear();
+        arenaBiomeWhitelist.addAll(parsed);
+        plugin.getConfig().set(CONFIG_ARENA_BIOME_WHITELIST,
+                arenaBiomeWhitelist.stream().map(Biome::name).sorted().toList());
+        plugin.saveConfig();
+    }
+
     public Set<UUID> getWaitingPlayers() {
         return Collections.unmodifiableSet(waitingPlayers);
     }
@@ -353,13 +506,32 @@ public class LavaRisingManager {
         waitingPlayers.add(uuid);
     }
 
-    public void startLava() {
+    public StartResult startLava() {
         if (state != GameState.WAITING) {
-            return;
+            return state == GameState.COUNTDOWN ? StartResult.COUNTDOWN_ACTIVE : StartResult.ALREADY_RUNNING;
+        }
+
+        World world = getMainWorld();
+        if (world == null) {
+            return StartResult.NO_WORLD;
+        }
+
+        List<Player> participants = getLobbyPlayers();
+        if (participants.isEmpty()) {
+            return StartResult.NO_LOBBY_PLAYERS;
+        }
+
+        ArenaSelection selection = selectFreshArena(world);
+        if (selection == null) {
+            return StartResult.NO_ARENA_FOUND;
         }
 
         stopAllTasks();
         state = GameState.COUNTDOWN;
+        activePlayers.clear();
+        for (Player player : participants) {
+            activePlayers.add(player.getUniqueId());
+        }
         waitingPlayers.clear();
         currentY = START_LAVA_Y;
         noMoreBottomDwellersActive = false;
@@ -367,7 +539,264 @@ public class LavaRisingManager {
         clearLavaSpeedBypasses();
         sandMayhemRound = false;
         buildingBlockMaterial = Material.DIRT;
+
+        prepareArenaForCountdown(world, selection, participants);
         scheduleCountdownAnnouncements();
+        return StartResult.STARTED;
+    }
+
+    public List<Player> getLobbyPlayers() {
+        World world = getMainWorld();
+        if (world == null) {
+            return Collections.emptyList();
+        }
+
+        Location lobby = getLobbyLocation(world);
+        double radiusSquared = (double) lobbyRadius * lobbyRadius;
+        return world.getPlayers().stream()
+                .filter(player -> player.getGameMode() != GameMode.SPECTATOR)
+                .filter(player -> horizontalDistanceSquared(player.getLocation(), lobby) <= radiusSquared)
+                .collect(Collectors.toList());
+    }
+
+    public void sendPlayerToLobby(Player player) {
+        World world = getMainWorld();
+        if (world == null || !player.isOnline()) {
+            return;
+        }
+
+        player.setGameMode(GameMode.ADVENTURE);
+        player.teleport(getLobbyLocation(world));
+    }
+
+    public void sendAllPlayersToLobby() {
+        World world = getMainWorld();
+        if (world == null) {
+            return;
+        }
+
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            sendPlayerToLobby(player);
+        }
+    }
+
+    private void prepareArenaForCountdown(World world, ArenaSelection selection, List<Player> participants) {
+        if (savedBorderSize != null) {
+            restoreBorderState(world);
+        }
+
+        WorldBorder border = world.getWorldBorder();
+        saveBorderState(border);
+        saveDifficultyState(world);
+        border.setCenter(selection.center().x() + 0.5D, selection.center().z() + 0.5D);
+        border.setSize(arenaDiameter);
+        world.setPVP(false);
+
+        currentArenaCenter = selection.center();
+        rememberUsedArenaCenter(selection.center());
+        teleportParticipantsToArena(world, participants, selection.center());
+
+        broadcastAll(ChatColor.YELLOW + "Selected arena center: "
+                + ChatColor.WHITE + selection.center().x() + ", " + selection.center().z()
+                + ChatColor.GRAY + " (" + selection.sourceLabel() + ", " + selection.biome().name() + ")");
+        broadcastAll(ChatColor.GRAY + "Players may move during the countdown.");
+    }
+
+    private void teleportParticipantsToArena(World world, List<Player> participants, ArenaCenter center) {
+        double spawnRadius = Math.max(3.0D, Math.min(8.0D, arenaDiameter / 8.0D));
+        int count = Math.max(1, participants.size());
+
+        for (int i = 0; i < participants.size(); i++) {
+            Player player = participants.get(i);
+            double angle = (Math.PI * 2.0D * i) / count;
+            double x = center.x() + 0.5D + Math.cos(angle) * spawnRadius;
+            double z = center.z() + 0.5D + Math.sin(angle) * spawnRadius;
+            Location spawn = getSafeSurfaceLocation(world, x, z);
+            if (spawn == null) {
+                spawn = new Location(world, center.x() + 0.5D, world.getMinHeight() + 5, center.z() + 0.5D);
+            }
+            spawn.setYaw((float) Math.toDegrees(Math.atan2(center.z() + 0.5D - spawn.getZ(),
+                    center.x() + 0.5D - spawn.getX())) - 90.0F);
+
+            player.setGameMode(GameMode.SURVIVAL);
+            player.setFallDistance(0.0F);
+            player.setFireTicks(0);
+            player.teleport(spawn);
+        }
+    }
+
+    private ArenaSelection selectFreshArena(World world) {
+        if (random.nextInt(100) < villageStartChancePercent) {
+            ArenaSelection villageSelection = selectVillageArena(world);
+            if (villageSelection != null) {
+                return villageSelection;
+            }
+        }
+
+        return selectSurfaceArena(world);
+    }
+
+    private ArenaSelection selectVillageArena(World world) {
+        if (!world.canGenerateStructures()) {
+            return null;
+        }
+
+        for (int attempt = 0; attempt < villageSearchAttempts; attempt++) {
+            Location origin = getRandomArenaSearchOrigin(world);
+            Location village = world.locateNearestStructure(
+                    origin,
+                    StructureType.VILLAGE,
+                    villageSearchRadiusChunks,
+                    false);
+            if (village == null) {
+                continue;
+            }
+
+            ArenaCenter center = new ArenaCenter(village.getBlockX(), village.getBlockZ());
+            ArenaSelection selection = validateArenaCenter(world, center, "village");
+            if (selection != null) {
+                return selection;
+            }
+        }
+
+        return null;
+    }
+
+    private ArenaSelection selectSurfaceArena(World world) {
+        int minRadius = Math.min(arenaSearchMinRadius, arenaSearchMaxRadius);
+        int maxRadius = Math.max(arenaSearchMinRadius, arenaSearchMaxRadius);
+        int radiusRange = Math.max(0, maxRadius - minRadius);
+
+        for (int attempt = 0; attempt < arenaSearchAttempts; attempt++) {
+            Location origin = getRandomArenaSearchOrigin(world, minRadius, radiusRange);
+            ArenaCenter center = new ArenaCenter(origin.getBlockX(), origin.getBlockZ());
+            ArenaSelection selection = validateArenaCenter(world, center, "surface");
+            if (selection != null) {
+                return selection;
+            }
+        }
+
+        return null;
+    }
+
+    private Location getRandomArenaSearchOrigin(World world) {
+        int minRadius = Math.min(arenaSearchMinRadius, arenaSearchMaxRadius);
+        int maxRadius = Math.max(arenaSearchMinRadius, arenaSearchMaxRadius);
+        int radiusRange = Math.max(0, maxRadius - minRadius);
+        return getRandomArenaSearchOrigin(world, minRadius, radiusRange);
+    }
+
+    private Location getRandomArenaSearchOrigin(World world, int minRadius, int radiusRange) {
+        double angle = random.nextDouble() * Math.PI * 2.0D;
+        int radius = minRadius + random.nextInt(radiusRange + 1);
+        int x = (int) Math.floor(lobbyX + Math.cos(angle) * radius);
+        int z = (int) Math.floor(lobbyZ + Math.sin(angle) * radius);
+        return new Location(world, x + 0.5D, world.getMinHeight() + 5, z + 0.5D);
+    }
+
+    private ArenaSelection validateArenaCenter(World world, ArenaCenter center, String sourceLabel) {
+        if (isTooCloseToLobby(center) || isTooCloseToUsedArena(center)) {
+            return null;
+        }
+
+        Location surface = getSafeSurfaceLocation(world, center.x() + 0.5D, center.z() + 0.5D);
+        if (surface == null) {
+            return null;
+        }
+
+        Biome biome = world.getBlockAt(surface.getBlockX(), surface.getBlockY() - 1, surface.getBlockZ()).getBiome();
+        if (!arenaBiomeWhitelist.contains(biome)) {
+            return null;
+        }
+
+        if (!isPlayableArenaSurface(world, center, surface.getBlockY())) {
+            return null;
+        }
+
+        return new ArenaSelection(center, biome, sourceLabel);
+    }
+
+    private boolean isPlayableArenaSurface(World world, ArenaCenter center, int centerY) {
+        int sampleDistance = Math.max(8, Math.min(48, arenaDiameter / 3));
+        int[][] samples = {
+                {0, 0},
+                {sampleDistance, 0},
+                {-sampleDistance, 0},
+                {0, sampleDistance},
+                {0, -sampleDistance}
+        };
+
+        for (int[] sample : samples) {
+            Location surface = getSafeSurfaceLocation(world, center.x() + sample[0] + 0.5D,
+                    center.z() + sample[1] + 0.5D);
+            if (surface == null || Math.abs(surface.getBlockY() - centerY) > 18) {
+                return false;
+            }
+
+            Biome biome = world.getBlockAt(surface.getBlockX(), surface.getBlockY() - 1, surface.getBlockZ())
+                    .getBiome();
+            if (!arenaBiomeWhitelist.contains(biome)) {
+                return false;
+            }
+        }
+
+        return hasTreeNearby(world, center, centerY);
+    }
+
+    private boolean hasTreeNearby(World world, ArenaCenter center, int centerY) {
+        if (arenaTreeCheckRadius <= 0) {
+            return true;
+        }
+
+        int step = 4;
+        for (int dx = -arenaTreeCheckRadius; dx <= arenaTreeCheckRadius; dx += step) {
+            for (int dz = -arenaTreeCheckRadius; dz <= arenaTreeCheckRadius; dz += step) {
+                if ((dx * dx) + (dz * dz) > arenaTreeCheckRadius * arenaTreeCheckRadius) {
+                    continue;
+                }
+
+                int x = center.x() + dx;
+                int z = center.z() + dz;
+                int y = getSafeGroundY(world, x, z);
+                if (y == Integer.MIN_VALUE) {
+                    y = centerY;
+                }
+
+                int minY = Math.max(world.getMinHeight(), y - 6);
+                int maxY = Math.min(world.getMaxHeight() - 1, y + 14);
+                for (int blockY = minY; blockY <= maxY; blockY++) {
+                    if (isTreeMaterial(world.getBlockAt(x, blockY, z).getType())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isTooCloseToLobby(ArenaCenter center) {
+        double distanceSquared = distanceSquared(center.x(), center.z(), lobbyX, lobbyZ);
+        return distanceSquared < (double) arenaMinDistanceFromLobby * arenaMinDistanceFromLobby;
+    }
+
+    private boolean isTooCloseToUsedArena(ArenaCenter center) {
+        int minimumDistance = Math.max(arenaMinDistanceFromUsed, arenaDiameter + 64);
+        double minimumDistanceSquared = (double) minimumDistance * minimumDistance;
+        for (ArenaCenter used : usedArenaCenters) {
+            if (distanceSquared(center.x(), center.z(), used.x(), used.z()) < minimumDistanceSquared) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void rememberUsedArenaCenter(ArenaCenter center) {
+        usedArenaCenters.add(center);
+        plugin.getConfig().set(CONFIG_USED_ARENA_CENTERS,
+                usedArenaCenters.stream()
+                        .map(used -> used.x() + "," + used.z())
+                        .toList());
+        plugin.saveConfig();
     }
 
     private void scheduleCountdownAnnouncements() {
@@ -397,19 +826,6 @@ public class LavaRisingManager {
         }
 
         state = GameState.RUNNING;
-        World world = getMainWorld();
-        if (world != null) {
-            if (savedBorderSize != null) {
-                restoreBorderState(world);
-            }
-            WorldBorder border = world.getWorldBorder();
-            saveBorderState(border);
-            saveDifficultyState(world);
-            Location center = border.getCenter();
-            border.setCenter(center.getX(), center.getZ());
-            border.setSize(arenaDiameter);
-            world.setPVP(false);
-        }
 
         chooseBuildingBlockMaterial();
         releaseWaitingPlayers();
@@ -436,7 +852,6 @@ public class LavaRisingManager {
 
             currentY++;
             fillLavaLayer(currentY);
-            clearDroppedItems();
             broadcastMilestone(currentY);
             giveBuildingBlocksForLavaRise();
             checkWinCondition();
@@ -446,7 +861,7 @@ public class LavaRisingManager {
             }
 
             if (currentY >= FINAL_SLOW_START_Y) {
-                startFinalPhase(false);
+                startFinalPhase();
                 return;
             }
 
@@ -487,10 +902,6 @@ public class LavaRisingManager {
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
             if (state == GameState.WAITING || state == GameState.COUNTDOWN) {
                 return;
-            }
-
-            if (state == GameState.RUNNING) {
-                updateNoMoreBottomDwellers();
             }
 
             String message;
@@ -535,42 +946,13 @@ public class LavaRisingManager {
         return ChatColor.YELLOW;
     }
 
-    private void updateNoMoreBottomDwellers() {
-        if (noMoreBottomDwellersSeconds <= 0 || noMoreBottomDwellersActive || currentY >= FINAL_SLOW_START_Y) {
-            return;
-        }
-
-        List<Player> alive = getAlivePlayers();
-        if (alive.isEmpty()) {
-            noMoreBottomDwellersClearSeconds = 0;
-            return;
-        }
-
-        boolean anyBottomDweller = alive.stream()
-                .anyMatch(player -> player.getLocation().getY() < EARLY_BUILD_LOCK_Y);
-        if (anyBottomDweller) {
-            noMoreBottomDwellersClearSeconds = 0;
-            return;
-        }
-
-        noMoreBottomDwellersClearSeconds++;
-        if (noMoreBottomDwellersClearSeconds >= noMoreBottomDwellersSeconds) {
-            noMoreBottomDwellersActive = true;
-            startFinalPhase(true);
-        }
-    }
-
-    private void startFinalPhase(boolean fromNoMoreBottomDwellers) {
+    private void startFinalPhase() {
         if (state != GameState.RUNNING) {
             return;
         }
 
         setHardDifficulty();
-        if (fromNoMoreBottomDwellers) {
-            broadcastAll(ChatColor.DARK_RED + "No more bottom dwellers. Phase 5 has started early.");
-        } else {
-            broadcastAll(ChatColor.DARK_RED + "Phase 5 has started at Y=" + currentY + ".");
-        }
+        broadcastAll(ChatColor.DARK_RED + "Phase 5 has started at Y=" + currentY + ".");
         enterSuddenDeath();
     }
 
@@ -643,7 +1025,7 @@ public class LavaRisingManager {
     }
 
     private void chooseBuildingBlockMaterial() {
-        sandMayhemRound = new Random().nextDouble() < SAND_ROUND_CHANCE;
+        sandMayhemRound = random.nextInt(100) < sandMayhemChancePercent;
         buildingBlockMaterial = sandMayhemRound ? Material.SAND : Material.DIRT;
     }
 
@@ -845,27 +1227,35 @@ public class LavaRisingManager {
         }
 
         waitingPlayers.clear();
+        activePlayers.clear();
+        currentArenaCenter = null;
+        sendAllPlayersToLobby();
     }
 
     public void stopLava() {
         stopAllTasks();
         state = GameState.WAITING;
+        activePlayers.clear();
         waitingPlayers.clear();
         resetRoundState();
+        currentArenaCenter = null;
         World world = getMainWorld();
         if (world != null) {
             restoreBorderState(world);
             restoreDifficultyState(world);
             world.setPVP(false);
         }
+        sendAllPlayersToLobby();
         broadcastAll(ChatColor.YELLOW + "Lava rising has been stopped.");
     }
 
     public void manualReset() {
         stopAllTasks();
         state = GameState.WAITING;
+        activePlayers.clear();
         waitingPlayers.clear();
         resetRoundState();
+        currentArenaCenter = null;
 
         World world = getMainWorld();
         if (world == null) {
@@ -876,27 +1266,14 @@ public class LavaRisingManager {
         restoreDifficultyState(world);
         world.setPVP(false);
 
-        WorldBorder border = world.getWorldBorder();
-        Location center = border.getCenter();
-        Random random = new Random();
-
-        for (Player player : world.getPlayers()) {
-            player.setGameMode(GameMode.ADVENTURE);
-
-            int radius = Math.max(1, arenaDiameter / 2);
-            double x = center.getX() + random.nextInt(radius * 2) - radius;
-            double z = center.getZ() + random.nextInt(radius * 2) - radius;
-            int safeY = getSafeSurfaceY(world, (int) x, (int) z);
-            player.teleport(new Location(world, x, safeY, z));
-            player.sendMessage(ChatColor.YELLOW + "Reset complete. New position: " + (int) x + ", " + (int) z);
-        }
-
-        broadcastAll(ChatColor.YELLOW + "The lava rising game has been reset.");
+        sendAllPlayersToLobby();
+        broadcastAll(ChatColor.YELLOW + "The lava rising game has been reset. Players returned to lobby.");
     }
 
     private void releaseWaitingPlayers() {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            if (player.getGameMode() == GameMode.SPECTATOR || player.getGameMode() == GameMode.ADVENTURE) {
+            if (activePlayers.contains(player.getUniqueId())
+                    && (player.getGameMode() == GameMode.SPECTATOR || player.getGameMode() == GameMode.ADVENTURE)) {
                 player.setGameMode(GameMode.SURVIVAL);
             }
         }
@@ -905,6 +1282,7 @@ public class LavaRisingManager {
 
     public List<Player> getAlivePlayers() {
         return plugin.getServer().getOnlinePlayers().stream()
+                .filter(player -> !isInGame() || activePlayers.contains(player.getUniqueId()))
                 .filter(player -> !waitingPlayers.contains(player.getUniqueId()))
                 .filter(player -> player.getGameMode() != GameMode.SPECTATOR)
                 .collect(Collectors.toList());
@@ -918,8 +1296,93 @@ public class LavaRisingManager {
     }
 
     private int getSafeSurfaceY(World world, int x, int z) {
+        int groundY = getSafeGroundY(world, x, z);
+        if (groundY != Integer.MIN_VALUE) {
+            return groundY + 1;
+        }
+
         int highest = world.getHighestBlockYAt(x, z);
         return Math.max(highest + 1, world.getMinHeight() + 5);
+    }
+
+    private Location getLobbyLocation(World world) {
+        Location location = getSafeSurfaceLocation(world, lobbyX, lobbyZ);
+        if (location != null) {
+            return location;
+        }
+
+        Location fallback = world.getSpawnLocation().clone();
+        fallback.setX(lobbyX);
+        fallback.setZ(lobbyZ);
+        fallback.setY(Math.max(world.getMinHeight() + 5, fallback.getY()));
+        return fallback;
+    }
+
+    private Location getSafeSurfaceLocation(World world, double x, double z) {
+        int blockX = (int) Math.floor(x);
+        int blockZ = (int) Math.floor(z);
+        int groundY = getSafeGroundY(world, blockX, blockZ);
+        if (groundY == Integer.MIN_VALUE) {
+            return null;
+        }
+
+        return new Location(world, x, groundY + 1.0D, z);
+    }
+
+    private int getSafeGroundY(World world, int x, int z) {
+        int highest = world.getHighestBlockYAt(x, z);
+        for (int y = Math.min(highest, world.getMaxHeight() - 3); y >= world.getMinHeight(); y--) {
+            Block ground = world.getBlockAt(x, y, z);
+            if (!isSafeSpawnSurface(ground.getType())) {
+                continue;
+            }
+
+            Block feet = world.getBlockAt(x, y + 1, z);
+            Block head = world.getBlockAt(x, y + 2, z);
+            if (feet.isPassable() && head.isPassable()) {
+                return y;
+            }
+        }
+
+        return Integer.MIN_VALUE;
+    }
+
+    private boolean isSafeSpawnSurface(Material material) {
+        if (!material.isSolid()) {
+            return false;
+        }
+
+        String name = material.name();
+        return !name.endsWith("_LEAVES")
+                && !name.endsWith("_LOG")
+                && !name.endsWith("_WOOD")
+                && !name.endsWith("_STEM")
+                && !name.endsWith("_HYPHAE")
+                && !name.contains("CACTUS")
+                && !name.contains("MAGMA")
+                && !name.contains("FIRE")
+                && material != Material.LAVA
+                && material != Material.WATER;
+    }
+
+    private boolean isTreeMaterial(Material material) {
+        String name = material.name();
+        return name.endsWith("_LEAVES")
+                || name.endsWith("_LOG")
+                || name.endsWith("_WOOD")
+                || name.endsWith("_STEM")
+                || name.endsWith("_HYPHAE")
+                || name.equals("MANGROVE_ROOTS");
+    }
+
+    private double horizontalDistanceSquared(Location first, Location second) {
+        return distanceSquared(first.getX(), first.getZ(), second.getX(), second.getZ());
+    }
+
+    private double distanceSquared(double firstX, double firstZ, double secondX, double secondZ) {
+        double dx = firstX - secondX;
+        double dz = firstZ - secondZ;
+        return dx * dx + dz * dz;
     }
 
     private boolean isReplaceable(Material material) {
@@ -1014,20 +1477,99 @@ public class LavaRisingManager {
         giveDirt = getBooleanSetting(CONFIG_GIVE_DIRT, DEFAULT_GIVE_DIRT);
         pvpAtSurface = getBooleanSetting(CONFIG_PVP_AT_SURFACE, DEFAULT_PVP_AT_SURFACE);
         borderDamage = getBooleanSetting(CONFIG_BORDER_DAMAGE, DEFAULT_BORDER_DAMAGE);
-        noMoreBottomDwellersSeconds = clamp(getIntSetting(CONFIG_NO_MORE_BOTTOM_DWELLERS,
-                null,
-                DEFAULT_NO_MORE_BOTTOM_DWELLERS_SECONDS),
-                MIN_NO_MORE_BOTTOM_DWELLERS_SECONDS,
-                MAX_NO_MORE_BOTTOM_DWELLERS_SECONDS);
+        noMoreBottomDwellersSeconds = DEFAULT_NO_MORE_BOTTOM_DWELLERS_SECONDS;
         buildingBlockGiveRate = clamp(getIntSetting(CONFIG_BUILDING_BLOCK_GIVE_RATE,
                 null,
                 DEFAULT_BUILDING_BLOCK_GIVE_RATE),
                 MIN_BUILDING_BLOCK_GIVE_RATE,
                 MAX_BUILDING_BLOCK_GIVE_RATE);
+        sandMayhemChancePercent = clamp(getIntSetting(CONFIG_SAND_MAYHEM_CHANCE,
+                null,
+                DEFAULT_SAND_MAYHEM_CHANCE_PERCENT),
+                MIN_SAND_MAYHEM_CHANCE_PERCENT,
+                MAX_SAND_MAYHEM_CHANCE_PERCENT);
+        villageStartChancePercent = clamp(getIntSetting(CONFIG_VILLAGE_START_CHANCE,
+                null,
+                DEFAULT_VILLAGE_START_CHANCE_PERCENT),
+                MIN_VILLAGE_START_CHANCE_PERCENT,
+                MAX_VILLAGE_START_CHANCE_PERCENT);
+        lobbyX = getDoubleSetting(CONFIG_LOBBY_X, null, DEFAULT_LOBBY_X);
+        lobbyZ = getDoubleSetting(CONFIG_LOBBY_Z, null, DEFAULT_LOBBY_Z);
+        lobbyRadius = clamp(getIntSetting(CONFIG_LOBBY_RADIUS, null, DEFAULT_LOBBY_RADIUS),
+                MIN_LOBBY_RADIUS,
+                MAX_LOBBY_RADIUS);
+        minPlayersToStart = clamp(getIntSetting(CONFIG_MIN_PLAYERS_TO_START, null, DEFAULT_MIN_PLAYERS_TO_START),
+                MIN_PLAYERS_TO_START,
+                MAX_PLAYERS_TO_START);
+        loadArenaSelectionSettings();
+        loadUsedArenaCenters();
         saveAllSettings();
         plugin.getConfig().set("arena-diameter", null);
         plugin.getConfig().set("base-speed-seconds", null);
         plugin.saveConfig();
+    }
+
+    private void loadArenaSelectionSettings() {
+        arenaMinDistanceFromLobby = clamp(getIntSetting(CONFIG_ARENA_MIN_DISTANCE_FROM_LOBBY,
+                null,
+                DEFAULT_ARENA_MIN_DISTANCE_FROM_LOBBY),
+                MIN_ARENA_DISTANCE,
+                MAX_ARENA_DISTANCE);
+        arenaMinDistanceFromUsed = clamp(getIntSetting(CONFIG_ARENA_MIN_DISTANCE_FROM_USED,
+                null,
+                DEFAULT_ARENA_MIN_DISTANCE_FROM_USED),
+                MIN_ARENA_DISTANCE,
+                MAX_ARENA_DISTANCE);
+        arenaSearchMinRadius = clamp(getIntSetting(CONFIG_ARENA_SEARCH_MIN_RADIUS,
+                null,
+                DEFAULT_ARENA_SEARCH_MIN_RADIUS),
+                MIN_ARENA_DISTANCE,
+                MAX_ARENA_DISTANCE);
+        arenaSearchMaxRadius = clamp(getIntSetting(CONFIG_ARENA_SEARCH_MAX_RADIUS,
+                null,
+                DEFAULT_ARENA_SEARCH_MAX_RADIUS),
+                MIN_ARENA_DISTANCE,
+                MAX_ARENA_DISTANCE);
+        if (arenaSearchMaxRadius < arenaSearchMinRadius) {
+            arenaSearchMaxRadius = arenaSearchMinRadius;
+        }
+        arenaSearchAttempts = clamp(getIntSetting(CONFIG_ARENA_SEARCH_ATTEMPTS,
+                null,
+                DEFAULT_ARENA_SEARCH_ATTEMPTS),
+                MIN_ARENA_SEARCH_ATTEMPTS,
+                MAX_ARENA_SEARCH_ATTEMPTS);
+        arenaTreeCheckRadius = clamp(getIntSetting(CONFIG_ARENA_TREE_CHECK_RADIUS,
+                null,
+                DEFAULT_ARENA_TREE_CHECK_RADIUS),
+                MIN_ARENA_TREE_CHECK_RADIUS,
+                MAX_ARENA_TREE_CHECK_RADIUS);
+        villageSearchRadiusChunks = clamp(getIntSetting(CONFIG_VILLAGE_SEARCH_RADIUS_CHUNKS,
+                null,
+                DEFAULT_VILLAGE_SEARCH_RADIUS_CHUNKS),
+                MIN_VILLAGE_SEARCH_RADIUS_CHUNKS,
+                MAX_VILLAGE_SEARCH_RADIUS_CHUNKS);
+        villageSearchAttempts = clamp(getIntSetting(CONFIG_VILLAGE_SEARCH_ATTEMPTS,
+                null,
+                DEFAULT_VILLAGE_SEARCH_ATTEMPTS),
+                MIN_VILLAGE_SEARCH_ATTEMPTS,
+                MAX_VILLAGE_SEARCH_ATTEMPTS);
+
+        List<String> configuredBiomes = plugin.getConfig().getStringList(CONFIG_ARENA_BIOME_WHITELIST);
+        if (configuredBiomes.isEmpty()) {
+            configuredBiomes = DEFAULT_ARENA_BIOME_WHITELIST;
+        }
+        arenaBiomeWhitelist.clear();
+        arenaBiomeWhitelist.addAll(parseBiomeWhitelist(configuredBiomes));
+    }
+
+    private void loadUsedArenaCenters() {
+        usedArenaCenters.clear();
+        for (String rawCenter : plugin.getConfig().getStringList(CONFIG_USED_ARENA_CENTERS)) {
+            ArenaCenter center = parseArenaCenter(rawCenter);
+            if (center != null) {
+                usedArenaCenters.add(center);
+            }
+        }
     }
 
     private void loadLavaPhaseSpeeds() {
@@ -1097,6 +1639,46 @@ public class LavaRisingManager {
         return defaultValue;
     }
 
+    private Set<Biome> parseBiomeWhitelist(List<String> rawBiomes) {
+        Set<Biome> parsed = new HashSet<>();
+        for (String rawBiome : rawBiomes) {
+            for (String token : rawBiome.split(",")) {
+                String normalized = token.trim()
+                        .replace(" ", "_")
+                        .replace("-", "_")
+                        .toUpperCase(Locale.ROOT);
+                if (normalized.isEmpty()) {
+                    continue;
+                }
+
+                try {
+                    parsed.add(Biome.valueOf(normalized));
+                } catch (IllegalArgumentException ignored) {
+                    plugin.getLogger().warning("Ignoring unknown arena biome in config: " + token.trim());
+                }
+            }
+        }
+
+        if (parsed.isEmpty()) {
+            parsed.add(Biome.FOREST);
+            parsed.add(Biome.BIRCH_FOREST);
+        }
+        return parsed;
+    }
+
+    private ArenaCenter parseArenaCenter(String rawCenter) {
+        String[] parts = rawCenter.split(",");
+        if (parts.length != 2) {
+            return null;
+        }
+
+        try {
+            return new ArenaCenter(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
     private void saveAllSettings() {
         plugin.getConfig().set(CONFIG_ARENA_DIAMETER, arenaDiameter);
         saveLavaPhaseSpeedSettings();
@@ -1110,6 +1692,25 @@ public class LavaRisingManager {
         plugin.getConfig().set(CONFIG_BORDER_DAMAGE, borderDamage);
         plugin.getConfig().set(CONFIG_NO_MORE_BOTTOM_DWELLERS, noMoreBottomDwellersSeconds);
         plugin.getConfig().set(CONFIG_BUILDING_BLOCK_GIVE_RATE, buildingBlockGiveRate);
+        plugin.getConfig().set(CONFIG_SAND_MAYHEM_CHANCE, sandMayhemChancePercent);
+        plugin.getConfig().set(CONFIG_VILLAGE_START_CHANCE, villageStartChancePercent);
+        plugin.getConfig().set(CONFIG_LOBBY_X, lobbyX);
+        plugin.getConfig().set(CONFIG_LOBBY_Z, lobbyZ);
+        plugin.getConfig().set(CONFIG_LOBBY_RADIUS, lobbyRadius);
+        plugin.getConfig().set(CONFIG_MIN_PLAYERS_TO_START, minPlayersToStart);
+        plugin.getConfig().set(CONFIG_ARENA_MIN_DISTANCE_FROM_LOBBY, arenaMinDistanceFromLobby);
+        plugin.getConfig().set(CONFIG_ARENA_MIN_DISTANCE_FROM_USED, arenaMinDistanceFromUsed);
+        plugin.getConfig().set(CONFIG_ARENA_SEARCH_MIN_RADIUS, arenaSearchMinRadius);
+        plugin.getConfig().set(CONFIG_ARENA_SEARCH_MAX_RADIUS, arenaSearchMaxRadius);
+        plugin.getConfig().set(CONFIG_ARENA_SEARCH_ATTEMPTS, arenaSearchAttempts);
+        plugin.getConfig().set(CONFIG_ARENA_TREE_CHECK_RADIUS, arenaTreeCheckRadius);
+        plugin.getConfig().set(CONFIG_VILLAGE_SEARCH_RADIUS_CHUNKS, villageSearchRadiusChunks);
+        plugin.getConfig().set(CONFIG_VILLAGE_SEARCH_ATTEMPTS, villageSearchAttempts);
+        plugin.getConfig().set(CONFIG_ARENA_BIOME_WHITELIST,
+                arenaBiomeWhitelist.stream().map(Biome::name).sorted().toList());
+        if (!plugin.getConfig().contains(CONFIG_USED_ARENA_CENTERS)) {
+            plugin.getConfig().set(CONFIG_USED_ARENA_CENTERS, Collections.emptyList());
+        }
     }
 
     private void saveLavaPhaseSpeedSettings() {
@@ -1195,9 +1796,6 @@ public class LavaRisingManager {
         if (nextY >= MAX_LAVA_Y) {
             return LavaPhase.REACH_314;
         }
-        if (noMoreBottomDwellersActive && nextY < FINAL_SLOW_START_Y) {
-            return LavaPhase.REACH_314;
-        }
         return getLavaPhaseForY(nextY);
     }
 
@@ -1280,6 +1878,21 @@ public class LavaRisingManager {
         SUDDEN_DEATH
     }
 
+    public enum StartResult {
+        STARTED,
+        ALREADY_RUNNING,
+        COUNTDOWN_ACTIVE,
+        NO_WORLD,
+        NO_LOBBY_PLAYERS,
+        NO_ARENA_FOUND
+    }
+
     private record ArenaBounds(int minX, int minZ, int maxXExclusive, int maxZExclusive) {
+    }
+
+    private record ArenaCenter(int x, int z) {
+    }
+
+    private record ArenaSelection(ArenaCenter center, Biome biome, String sourceLabel) {
     }
 }

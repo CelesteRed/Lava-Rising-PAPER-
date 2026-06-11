@@ -14,5 +14,40 @@ milestoneMessages: true
 giveDirt: true
 pvpAtSurface: true
 borderDamage: true
-noMoreBottomDwellers: 60
+noMoreBottomDwellers: 0
 buildingBlockGiveRate: 16
+sandMayhemChance: 10
+villageStartChance: 10
+minPlayersToStart: 2
+lobby:
+  x: 0.5
+  z: 0.5
+  radius: 32
+arenaSelection:
+  minDistanceFromLobby: 512
+  minDistanceFromUsedArenas: 512
+  searchMinRadius: 700
+  searchMaxRadius: 5000
+  maxAttempts: 96
+  treeCheckRadius: 32
+  villageSearchRadiusChunks: 320
+  villageSearchAttempts: 12
+  biomeWhitelist:
+    - FOREST
+    - BIRCH_FOREST
+    - OLD_GROWTH_BIRCH_FOREST
+    - FLOWER_FOREST
+    - DARK_FOREST
+    - PLAINS
+    - SUNFLOWER_PLAINS
+    - SAVANNA
+    - SAVANNA_PLATEAU
+    - TAIGA
+    - OLD_GROWTH_PINE_TAIGA
+    - OLD_GROWTH_SPRUCE_TAIGA
+    - SPARSE_JUNGLE
+    - JUNGLE
+    - CHERRY_GROVE
+    - MEADOW
+    - WINDSWEPT_FOREST
+usedArenaCenters: []

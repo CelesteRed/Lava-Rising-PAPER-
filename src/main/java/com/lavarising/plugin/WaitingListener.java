@@ -19,7 +19,7 @@ public class WaitingListener implements Listener {
         if (manager.isInGame()) {
             player.setGameMode(GameMode.SPECTATOR);
         } else {
-            player.setGameMode(GameMode.ADVENTURE);
+            manager.sendPlayerToLobby(player);
         }
     }
 }

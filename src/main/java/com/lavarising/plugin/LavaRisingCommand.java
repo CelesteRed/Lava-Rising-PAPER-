@@ -11,6 +11,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
 public class LavaRisingCommand implements CommandExecutor, TabCompleter {
+    private static final String ADMIN_PERMISSION = "lavarising.use";
+    private static final String START_PERMISSION = "lavarising.start";
     private static final List<String> ROOT_COMMANDS = Arrays.asList(
             "start",
             "stop",
@@ -30,8 +32,25 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             "pvpAtSurface",
             "borderDamage",
             "noMoreBottomDwellers",
-            "buildingBlockGiveRate");
+            "buildingBlockGiveRate",
+            "sandMayhemChance",
+            "villageStartChance",
+            "minPlayersToStart",
+            "arenaBiomeWhitelist");
     private static final List<String> BOOLEAN_VALUES = Arrays.asList("true", "false", "on", "off");
+    private static final List<String> BIOME_SUGGESTIONS = Arrays.asList(
+            "FOREST",
+            "BIRCH_FOREST",
+            "OLD_GROWTH_BIRCH_FOREST",
+            "FLOWER_FOREST",
+            "DARK_FOREST",
+            "PLAINS",
+            "SUNFLOWER_PLAINS",
+            "TAIGA",
+            "SPARSE_JUNGLE",
+            "JUNGLE",
+            "CHERRY_GROVE",
+            "MEADOW");
 
     private final LavaRisingManager manager;
 
@@ -41,21 +60,22 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("lavarising.use")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
-            return true;
-        }
-
         String name = command.getName().toLowerCase(Locale.ROOT);
-        if (name.equals("lavastart")) {
+        if (name.equals("lavastart") || name.equals("start")) {
             handleStart(sender);
             return true;
         }
         if (name.equals("lavastop")) {
+            if (!requireAdmin(sender)) {
+                return true;
+            }
             handleStop(sender);
             return true;
         }
         if (name.equals("lavaspeedbypass")) {
+            if (!requireAdmin(sender)) {
+                return true;
+            }
             handleLavaSpeedBypass(sender, args);
             return true;
         }
@@ -68,11 +88,27 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "start" -> handleStart(sender);
-            case "stop" -> handleStop(sender);
+            case "stop" -> {
+                if (requireAdmin(sender)) {
+                    handleStop(sender);
+                }
+            }
             case "status" -> handleStatus(sender);
-            case "border", "diameter" -> handleBorder(sender, args);
-            case "speed" -> handleSpeed(sender, args);
-            case "settings" -> handleSettings(sender, args);
+            case "border", "diameter" -> {
+                if (requireAdmin(sender)) {
+                    handleBorder(sender, args);
+                }
+            }
+            case "speed" -> {
+                if (requireAdmin(sender)) {
+                    handleSpeed(sender, args);
+                }
+            }
+            case "settings" -> {
+                if (requireAdmin(sender)) {
+                    handleSettings(sender, args);
+                }
+            }
             default -> sender.sendMessage(ChatColor.RED
                     + "Unknown subcommand. Use: start, stop, status, or settings.");
         }
@@ -80,6 +116,10 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
     }
 
     private void handleStart(CommandSender sender) {
+        if (!sender.hasPermission(START_PERMISSION) && !isAdmin(sender)) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to start a lava round.");
+            return;
+        }
         if (manager.isRunning()) {
             sender.sendMessage(ChatColor.RED + "Game is already running! Y=" + manager.getCurrentY());
             return;
@@ -89,8 +129,31 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        sender.sendMessage(ChatColor.YELLOW + "Starting lava rise...");
-        manager.startLava();
+        int lobbyPlayers = manager.getLobbyPlayerCount();
+        if (lobbyPlayers < manager.getMinPlayersToStart()) {
+            sender.sendMessage(ChatColor.RED + "Need " + manager.getMinPlayersToStart()
+                    + " players in the lobby to start. Current lobby players: " + lobbyPlayers + ".");
+            return;
+        }
+
+        if (!isAdmin(sender) && manager.hasOnlineAdmin()) {
+            sender.sendMessage(ChatColor.RED + "An admin is online, so an admin must start the round.");
+            return;
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "Finding a fresh playable arena...");
+        LavaRisingManager.StartResult result = manager.startLava();
+        switch (result) {
+            case STARTED -> sender.sendMessage(ChatColor.YELLOW + "Starting lava rise...");
+            case ALREADY_RUNNING -> sender.sendMessage(ChatColor.RED
+                    + "Game is already running! Y=" + manager.getCurrentY());
+            case COUNTDOWN_ACTIVE -> sender.sendMessage(ChatColor.RED
+                    + "A countdown is already in progress. Use /lavastop to cancel it.");
+            case NO_WORLD -> sender.sendMessage(ChatColor.RED + "No normal overworld is available.");
+            case NO_LOBBY_PLAYERS -> sender.sendMessage(ChatColor.RED + "No players are in the lobby.");
+            case NO_ARENA_FOUND -> sender.sendMessage(ChatColor.RED
+                    + "Could not find a fresh whitelisted biome with nearby trees. Try widening arenaSelection in config.");
+        }
     }
 
     private void handleStop(CommandSender sender) {
@@ -177,6 +240,8 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
     private void handleStatus(CommandSender sender) {
         if (!manager.isInGame()) {
             sender.sendMessage(ChatColor.GRAY + "No active game. Use /lavastart to begin.");
+            sender.sendMessage(ChatColor.GRAY + "Lobby players: "
+                    + ChatColor.WHITE + manager.getLobbyPlayerCount() + "/" + manager.getMinPlayersToStart());
             sender.sendMessage(ChatColor.GRAY + "Settings: border "
                     + ChatColor.WHITE + manager.getArenaDiameter() + " blocks"
                     + ChatColor.GRAY + ", lava speed "
@@ -226,7 +291,10 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        if (args.length > 3) {
+        String rawValue = args[2];
+        if (args.length > 3 && canonical.equals("arenaBiomeWhitelist")) {
+            rawValue = String.join(",", Arrays.copyOfRange(args, 2, args.length));
+        } else if (args.length > 3) {
             sender.sendMessage(ChatColor.RED + "Usage: /lavarising settings <option> <value>");
             return;
         }
@@ -236,7 +304,7 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        if (setSettingValue(sender, canonical, args[2])) {
+        if (setSettingValue(sender, canonical, rawValue)) {
             sender.sendMessage(ChatColor.YELLOW + canonical + " set to "
                     + ChatColor.WHITE + formatSettingValue(canonical) + ChatColor.YELLOW + ".");
         }
@@ -359,6 +427,10 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
                 case "borderDamage" -> manager.setBorderDamageEnabled(parseBoolean(sender, rawValue));
                 case "noMoreBottomDwellers" -> manager.setNoMoreBottomDwellersSeconds(Integer.parseInt(rawValue));
                 case "buildingBlockGiveRate" -> manager.setBuildingBlockGiveRate(Integer.parseInt(rawValue));
+                case "sandMayhemChance" -> manager.setSandMayhemChancePercent(Integer.parseInt(rawValue));
+                case "villageStartChance" -> manager.setVillageStartChancePercent(Integer.parseInt(rawValue));
+                case "minPlayersToStart" -> manager.setMinPlayersToStart(Integer.parseInt(rawValue));
+                case "arenaBiomeWhitelist" -> manager.setArenaBiomeWhitelistFromInput(rawValue);
                 default -> {
                     sender.sendMessage(ChatColor.RED + "Unknown setting: " + setting);
                     return false;
@@ -391,6 +463,10 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
                     ? "disabled"
                     : manager.getNoMoreBottomDwellersSeconds() + " seconds";
             case "buildingBlockGiveRate" -> manager.getBuildingBlockGiveRate() + " blocks per lava rise";
+            case "sandMayhemChance" -> manager.getSandMayhemChancePercent() + "%";
+            case "villageStartChance" -> manager.getVillageStartChancePercent() + "%";
+            case "minPlayersToStart" -> manager.getMinPlayersToStart() + " players";
+            case "arenaBiomeWhitelist" -> manager.getArenaBiomeWhitelistLabel();
             default -> "unknown";
         };
     }
@@ -420,6 +496,10 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             case "borderdamage", "suffocation" -> "borderDamage";
             case "nomorebottomdwellers", "bottomdwellers", "nobottomdwellers" -> "noMoreBottomDwellers";
             case "buildingblockgiverate", "blockgiverate", "blockrate", "giverate" -> "buildingBlockGiveRate";
+            case "sandmayhemchance", "sandchance", "sandmayhem" -> "sandMayhemChance";
+            case "villagestartchance", "villagechance", "village" -> "villageStartChance";
+            case "minplayerstostart", "minplayers", "minimumplayers" -> "minPlayersToStart";
+            case "arenabiomewhitelist", "biomewhitelist", "arenabiomes", "biomes" -> "arenaBiomeWhitelist";
             default -> null;
         };
     }
@@ -436,6 +516,19 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             case "soundsEnabled", "milestoneMessages", "giveDirt", "pvpAtSurface", "borderDamage" -> true;
             default -> false;
         };
+    }
+
+    private boolean requireAdmin(CommandSender sender) {
+        if (isAdmin(sender)) {
+            return true;
+        }
+
+        sender.sendMessage(ChatColor.RED + "You don't have permission to use this admin command.");
+        return false;
+    }
+
+    private boolean isAdmin(CommandSender sender) {
+        return sender.isOp() || sender.hasPermission(ADMIN_PERMISSION);
     }
 
     private Boolean parseBooleanValue(String rawValue) {
@@ -465,9 +558,11 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
     private String numericError(String setting) {
         return switch (setting) {
             case "arenaDiameter", "suddenDeathDelay", "suddenDeathSpeed", "suddenDeathRadius",
-                    "noMoreBottomDwellers", "buildingBlockGiveRate" ->
+                    "noMoreBottomDwellers", "buildingBlockGiveRate", "sandMayhemChance", "villageStartChance",
+                    "minPlayersToStart" ->
                     setting + " must be a whole number.";
             case "lavaRisingSpeed" -> "lavaRisingSpeed must be a number of seconds.";
+            case "arenaBiomeWhitelist" -> "arenaBiomeWhitelist must be a comma-separated list of biome names.";
             default -> setting + " has an invalid value.";
         };
     }
@@ -511,6 +606,9 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             if (isBooleanSetting(setting)) {
                 return filter(BOOLEAN_VALUES, args[2]);
             }
+            if (setting.equals("arenaBiomeWhitelist")) {
+                return filter(BIOME_SUGGESTIONS, args[2]);
+            }
             return filter(numberSuggestions(setting), args[2]);
         }
         if (command.getName().equalsIgnoreCase("lavarising")
@@ -532,6 +630,9 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             case "suddenDeathRadius" -> Arrays.asList("1", "2", "5");
             case "noMoreBottomDwellers" -> Arrays.asList("60", "30", "0");
             case "buildingBlockGiveRate" -> Arrays.asList("16", "8", "0");
+            case "sandMayhemChance" -> Arrays.asList("10", "25", "50", "100", "0");
+            case "villageStartChance" -> Arrays.asList("10", "25", "50", "100", "0");
+            case "minPlayersToStart" -> Arrays.asList("2", "3", "4", "1");
             default -> Collections.emptyList();
         };
     }

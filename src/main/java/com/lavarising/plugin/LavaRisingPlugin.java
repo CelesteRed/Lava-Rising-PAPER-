@@ -13,6 +13,7 @@ public class LavaRisingPlugin extends JavaPlugin {
 
         LavaRisingCommand command = new LavaRisingCommand(lavaManager);
         setCommand("lavarising", command);
+        setCommand("start", command);
         setCommand("lavastart", command);
         setCommand("lavastop", command);
         setCommand("lavaspeedbypass", command);
@@ -26,6 +27,12 @@ public class LavaRisingPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CraftListener(lavaManager), this);
         getServer().getPluginManager().registerEvents(new WaitingListener(lavaManager), this);
         getServer().getPluginManager().registerEvents(new BuildHeightListener(lavaManager), this);
+
+        getServer().getScheduler().runTask(this, () -> {
+            if (!lavaManager.isInGame()) {
+                lavaManager.sendAllPlayersToLobby();
+            }
+        });
 
         getLogger().info("LavaRising plugin enabled for Paper API 26.1.2.");
     }

@@ -27,6 +27,10 @@ public class RespawnListener implements Listener {
         }
 
         Player player = event.getEntity();
+        if (!manager.isActivePlayer(player.getUniqueId())) {
+            return;
+        }
+
         manager.addWaitingPlayer(player.getUniqueId());
 
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -44,7 +48,8 @@ public class RespawnListener implements Listener {
         }
 
         Player player = event.getPlayer();
-        if (!manager.getWaitingPlayers().contains(player.getUniqueId())) {
+        if (!manager.isActivePlayer(player.getUniqueId())
+                || !manager.getWaitingPlayers().contains(player.getUniqueId())) {
             return;
         }
 
