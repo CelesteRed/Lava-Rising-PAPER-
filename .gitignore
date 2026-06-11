@@ -17,6 +17,7 @@ work_*/
 
 # Packaged plugin artifacts
 *.jar
+!LavaRising-1.2.14-paper26.1.2-sand-speedbypass.jar
 !gradle/wrapper/gradle-wrapper.jar
 !.mvn/wrapper/maven-wrapper.jar
 

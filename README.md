@@ -4,7 +4,7 @@ Paper `26.1.2` lava-rising minigame plugin.
 
 ## Install
 
-1. Put `LavaRising-1.2.0.jar` in your server `plugins` folder.
+1. Put `LavaRising-1.2.14-paper26.1.2-sand-speedbypass.jar` in your server `plugins` folder.
 2. Start or restart the Paper server.
 3. OPs can run the setup and game commands.
 
