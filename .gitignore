@@ -1,0 +1,51 @@
+# IDE/editor metadata
+.idea/
+*.iml
+.vscode/
+
+# Java build output
+build/
+target/
+out/
+*.class
+
+# Local scratch/decompile/extraction folders
+work_api/
+work_extracted/
+work_javap/
+work_*/
+
+# Packaged plugin artifacts
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Logs and runtime files
+*.log
+logs/
+crash-reports/
+server.properties
+banned-ips.json
+banned-players.json
+ops.json
+usercache.json
+whitelist.json
+world/
+world_nether/
+world_the_end/
+
+# Secrets and local environment
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+secrets/
+private/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
