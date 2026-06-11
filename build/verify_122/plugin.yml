@@ -1,0 +1,28 @@
+name: LavaRising
+version: 1.2.2
+main: com.lavarising.plugin.LavaRisingPlugin
+api-version: '26.1.2'
+description: Fills the world with rising lava and a slow border-only sudden death
+
+commands:
+  lavarising:
+    description: Start, stop, or check status of the lava rising event
+    usage: /lavarising <start|stop|status>
+    permission: lavarising.use
+  lavastart:
+    description: Start the lava rising event (shorthand)
+    usage: /lavastart
+    permission: lavarising.use
+  lavastop:
+    description: Stop the lava rising event (shorthand)
+    usage: /lavastop
+    permission: lavarising.use
+  reset:
+    description: Manually end the current game and move everyone to a fresh area
+    usage: /reset
+    permission: lavarising.use
+
+permissions:
+  lavarising.use:
+    description: Allows use of lava rising commands
+    default: op

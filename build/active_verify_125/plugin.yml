@@ -1,0 +1,28 @@
+name: LavaRising
+version: 1.2.5
+main: com.lavarising.plugin.LavaRisingPlugin
+api-version: '26.1.2'
+description: Configurable lava rising arena with Y=310 lava and 3x3 border sudden death
+
+commands:
+  lavarising:
+    description: Start, stop, check status, or configure the lava rising event
+    usage: /lavarising <start|stop|status|border|speed|settings>
+    permission: lavarising.use
+  lavastart:
+    description: Start the lava rising event (shorthand)
+    usage: /lavastart
+    permission: lavarising.use
+  lavastop:
+    description: Stop the lava rising event (shorthand)
+    usage: /lavastop
+    permission: lavarising.use
+  reset:
+    description: Manually end the current game and move everyone to a fresh area
+    usage: /reset
+    permission: lavarising.use
+
+permissions:
+  lavarising.use:
+    description: Allows use of lava rising commands
+    default: op
