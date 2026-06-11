@@ -6,11 +6,11 @@
 
     <groupId>com.lavarising</groupId>
     <artifactId>LavaRising</artifactId>
-    <version>1.2.13</version>
+    <version>1.2.14</version>
     <packaging>jar</packaging>
 
     <name>LavaRising</name>
-    <description>A configurable Paper lava rising arena with early-build punishments and documented settings</description>
+    <description>A configurable Paper lava rising arena with Sand Mayhem and lava speed bypass</description>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>

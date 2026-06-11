@@ -89,6 +89,8 @@ public class LavaRisingManager {
     private Difficulty savedDifficulty;
     private int arenaDiameter;
     private final int[] lavaPhaseSpeedTicks = new int[LavaPhase.values().length];
+    private final int[] lavaPhaseSpeedOverrideTicks = new int[LavaPhase.values().length];
+    private BukkitTask lavaRiseTask;
     private int suddenDeathDelaySeconds;
     private int suddenDeathSpeedSeconds;
     private int suddenDeathRadius;
@@ -96,6 +98,7 @@ public class LavaRisingManager {
     private int noMoreBottomDwellersClearSeconds;
     private int buildingBlockGiveRate;
     private boolean noMoreBottomDwellersActive;
+    private boolean sandMayhemRound;
     private Material buildingBlockMaterial = Material.DIRT;
     private boolean soundsEnabled;
     private boolean milestoneMessages;
@@ -133,7 +136,7 @@ public class LavaRisingManager {
         if (phase == LavaPhase.HEIGHT_LIMIT) {
             return phase.getDisplayName();
         }
-        return phase.getDisplayName() + " (1 Lava/" + formatSeconds(getLavaRisingSpeedSeconds(phase)) + "sec)";
+        return phase.getDisplayName() + " (1 Lava/" + formatSeconds(getEffectiveLavaRisingSpeedSeconds(phase)) + "sec)";
     }
 
     public int getArenaDiameter() {
@@ -146,6 +149,10 @@ public class LavaRisingManager {
 
     public double getLavaRisingSpeedSeconds(LavaPhase phase) {
         return lavaPhaseSpeedTicks[phase.ordinal()] / 20.0D;
+    }
+
+    public double getEffectiveLavaRisingSpeedSeconds(LavaPhase phase) {
+        return getEffectiveTicksForPhase(phase) / 20.0D;
     }
 
     public LavaPhase getCurrentLavaPhase() {
@@ -221,6 +228,28 @@ public class LavaRisingManager {
 
     public Material getBuildingBlockMaterial() {
         return buildingBlockMaterial;
+    }
+
+    public boolean isSandMayhemRound() {
+        return sandMayhemRound;
+    }
+
+    public LavaPhase setCurrentPhaseSpeedBypassSeconds(double seconds) {
+        LavaPhase phase = getActiveLavaPhase();
+        lavaPhaseSpeedOverrideTicks[phase.ordinal()] = secondsToTicks(seconds);
+        rescheduleNextLavaTick();
+        return phase;
+    }
+
+    public LavaPhase clearCurrentPhaseSpeedBypass() {
+        LavaPhase phase = getActiveLavaPhase();
+        lavaPhaseSpeedOverrideTicks[phase.ordinal()] = 0;
+        rescheduleNextLavaTick();
+        return phase;
+    }
+
+    public boolean hasLavaSpeedBypass(LavaPhase phase) {
+        return lavaPhaseSpeedOverrideTicks[phase.ordinal()] > 0;
     }
 
     public void setArenaDiameter(int diameter) {
@@ -335,6 +364,8 @@ public class LavaRisingManager {
         currentY = START_LAVA_Y;
         noMoreBottomDwellersActive = false;
         noMoreBottomDwellersClearSeconds = 0;
+        clearLavaSpeedBypasses();
+        sandMayhemRound = false;
         buildingBlockMaterial = Material.DIRT;
         scheduleCountdownAnnouncements();
     }
@@ -386,6 +417,7 @@ public class LavaRisingManager {
         broadcastAll(ChatColor.RED + "Lava starts at Y=" + START_LAVA_Y
                 + " and rises to Y=" + MAX_LAVA_Y + " inside the " + arenaDiameter + "x" + arenaDiameter
                 + " arena.");
+        announceSandMayhemRound();
 
         startActionBarLoop();
         scheduleTick();
@@ -397,6 +429,7 @@ public class LavaRisingManager {
         }
 
         BukkitTask task = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            lavaRiseTask = null;
             if (state != GameState.RUNNING) {
                 return;
             }
@@ -425,11 +458,29 @@ public class LavaRisingManager {
 
             scheduleTick();
         }, getTicksPerLayer());
+        lavaRiseTask = task;
         activeTasks.add(task);
     }
 
     private int getTicksPerLayer() {
-        return lavaPhaseSpeedTicks[getLavaPhaseForNextLayer().ordinal()];
+        return getEffectiveTicksForPhase(getLavaPhaseForNextLayer());
+    }
+
+    private int getEffectiveTicksForPhase(LavaPhase phase) {
+        int overrideTicks = lavaPhaseSpeedOverrideTicks[phase.ordinal()];
+        return overrideTicks > 0 ? overrideTicks : lavaPhaseSpeedTicks[phase.ordinal()];
+    }
+
+    private void rescheduleNextLavaTick() {
+        if (state != GameState.RUNNING) {
+            return;
+        }
+        if (lavaRiseTask != null) {
+            lavaRiseTask.cancel();
+            activeTasks.remove(lavaRiseTask);
+            lavaRiseTask = null;
+        }
+        scheduleTick();
     }
 
     private void startActionBarLoop() {
@@ -592,7 +643,31 @@ public class LavaRisingManager {
     }
 
     private void chooseBuildingBlockMaterial() {
-        buildingBlockMaterial = new Random().nextDouble() < SAND_ROUND_CHANCE ? Material.SAND : Material.DIRT;
+        sandMayhemRound = new Random().nextDouble() < SAND_ROUND_CHANCE;
+        buildingBlockMaterial = sandMayhemRound ? Material.SAND : Material.DIRT;
+    }
+
+    private void announceSandMayhemRound() {
+        if (!sandMayhemRound) {
+            return;
+        }
+
+        broadcastAll(ChatColor.GOLD + "" + ChatColor.BOLD + "Sand Mayhem!"
+                + ChatColor.YELLOW + " This whole round gives sand instead of dirt.");
+        playWorldSound(Sound.BLOCK_SAND_PLACE, 1.0F, 0.7F);
+
+        World world = getMainWorld();
+        if (world == null) {
+            return;
+        }
+
+        for (Player player : world.getPlayers()) {
+            player.sendTitle(ChatColor.GOLD + "" + ChatColor.BOLD + "Sand Mayhem",
+                    ChatColor.YELLOW + "This round gives sand instead of dirt.",
+                    10,
+                    70,
+                    20);
+        }
     }
 
     private void giveBuildingBlocksForLavaRise() {
@@ -899,12 +974,21 @@ public class LavaRisingManager {
             task.cancel();
         }
         activeTasks.clear();
+        lavaRiseTask = null;
     }
 
     private void resetRoundState() {
         noMoreBottomDwellersActive = false;
         noMoreBottomDwellersClearSeconds = 0;
+        clearLavaSpeedBypasses();
+        sandMayhemRound = false;
         buildingBlockMaterial = Material.DIRT;
+    }
+
+    private void clearLavaSpeedBypasses() {
+        for (int i = 0; i < lavaPhaseSpeedOverrideTicks.length; i++) {
+            lavaPhaseSpeedOverrideTicks[i] = 0;
+        }
     }
 
     private void loadSettings() {

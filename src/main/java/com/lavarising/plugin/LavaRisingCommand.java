@@ -55,6 +55,10 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
             handleStop(sender);
             return true;
         }
+        if (name.equals("lavaspeedbypass")) {
+            handleLavaSpeedBypass(sender, args);
+            return true;
+        }
 
         if (args.length == 0) {
             sender.sendMessage(ChatColor.RED + "Usage: /lavarising <start|stop|status|settings>");
@@ -97,6 +101,39 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
 
         manager.stopLava();
         sender.sendMessage(ChatColor.YELLOW + "Lava event stopped.");
+    }
+
+    private void handleLavaSpeedBypass(CommandSender sender, String[] args) {
+        if (manager.getState() != LavaRisingManager.GameState.RUNNING) {
+            sender.sendMessage(ChatColor.RED + "Lava must be actively rising to use /lavaspeedbypass.");
+            return;
+        }
+        if (args.length > 1) {
+            sender.sendMessage(ChatColor.RED + "Usage: /lavaspeedbypass [seconds-per-block]");
+            return;
+        }
+
+        if (args.length == 0) {
+            LavaRisingManager.LavaPhase phase = manager.clearCurrentPhaseSpeedBypass();
+            sender.sendMessage(ChatColor.YELLOW + "Lava speed bypass reset for phase "
+                    + ChatColor.WHITE + phase.getId() + " (" + phase.getConfigKey() + ")"
+                    + ChatColor.YELLOW + ". Current speed: "
+                    + ChatColor.WHITE + formatSeconds(manager.getEffectiveLavaRisingSpeedSeconds(phase))
+                    + " seconds per block" + ChatColor.YELLOW + ".");
+            return;
+        }
+
+        try {
+            LavaRisingManager.LavaPhase phase = manager.setCurrentPhaseSpeedBypassSeconds(parseFiniteDouble(args[0]));
+            sender.sendMessage(ChatColor.YELLOW + "Lava speed bypass set for phase "
+                    + ChatColor.WHITE + phase.getId() + " (" + phase.getConfigKey() + ")"
+                    + ChatColor.YELLOW + ": "
+                    + ChatColor.WHITE + "1 Lava/"
+                    + formatSeconds(manager.getEffectiveLavaRisingSpeedSeconds(phase)) + "sec"
+                    + ChatColor.YELLOW + ".");
+        } catch (NumberFormatException ex) {
+            sender.sendMessage(ChatColor.RED + "Speed bypass must be a number of seconds.");
+        }
     }
 
     private void handleBorder(CommandSender sender, String[] args) {
@@ -444,6 +481,9 @@ public class LavaRisingCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (command.getName().equalsIgnoreCase("lavaspeedbypass") && args.length == 1) {
+            return filter(Arrays.asList("2", "1", "0.5", "0.1"), args[0]);
+        }
         if (command.getName().equalsIgnoreCase("lavarising") && args.length == 1) {
             return filter(ROOT_COMMANDS, args[0]);
         }

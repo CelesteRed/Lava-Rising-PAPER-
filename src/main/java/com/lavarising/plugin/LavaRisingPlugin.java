@@ -15,6 +15,7 @@ public class LavaRisingPlugin extends JavaPlugin {
         setCommand("lavarising", command);
         setCommand("lavastart", command);
         setCommand("lavastop", command);
+        setCommand("lavaspeedbypass", command);
 
         PluginCommand resetCommand = getCommand("reset");
         if (resetCommand != null) {

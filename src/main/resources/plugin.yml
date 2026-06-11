@@ -1,8 +1,8 @@
 name: LavaRising
-version: 1.2.13
+version: 1.2.14
 main: com.lavarising.plugin.LavaRisingPlugin
 api-version: '26.1.2'
-description: Configurable lava rising arena with early-build punishments and documented settings
+description: Configurable lava rising arena with Sand Mayhem and lava speed bypass
 
 commands:
   lavarising:
@@ -16,6 +16,10 @@ commands:
   lavastop:
     description: Stop the lava rising event (shorthand)
     usage: /lavastop
+    permission: lavarising.use
+  lavaspeedbypass:
+    description: Temporarily override the current phase lava speed during a running game
+    usage: /lavaspeedbypass [seconds-per-block]
     permission: lavarising.use
   reset:
     description: Manually end the current game and move everyone to a fresh area

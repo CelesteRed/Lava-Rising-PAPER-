@@ -33,6 +33,18 @@ Check status:
 /lavarising status
 ```
 
+Temporarily speed up or slow down the current lava phase during a running game:
+
+```text
+/lavaspeedbypass <seconds-per-block>
+```
+
+Reset the current phase back to its configured speed:
+
+```text
+/lavaspeedbypass
+```
+
 Reset players and stop the current round:
 
 ```text
@@ -158,7 +170,7 @@ How many building blocks are given per lava rise. Players are capped at one stac
 
 ### giveDirt
 
-Whether players receive building blocks. Most rounds give dirt. There is a 10% chance the round gives sand instead.
+Whether players receive building blocks. Most rounds give dirt. There is a 10% chance the whole round becomes a Sand Mayhem round, where players receive sand instead of dirt.
 
 ```text
 /lavarising settings giveDirt true
@@ -204,10 +216,28 @@ Controls whether the world border damages players during sudden death.
 - Sudden death starts instantly when phase 5 starts.
 - Difficulty changes to `HARD` when lava reaches `Y=60`, or when `noMoreBottomDwellers` starts phase 5 early.
 - The original world difficulty is restored when the game ends, stops, or resets.
+- Most rounds give dirt as the building block.
+- 10% of rounds are Sand Mayhem rounds; players get a `Sand Mayhem` title and receive sand for the entire round.
 - Players cannot place blocks above `Y=100` before lava reaches `Y=60`.
 - If a player tries to build above `Y=200` during phase 1 or 2, they get nausea.
 - If they keep trying to build that high, they also get blindness.
 - Dropped item entities are cleared every lava rise to reduce lag.
+
+## Admin Bypass
+
+Use this while lava is actively rising:
+
+```text
+/lavaspeedbypass <seconds-per-block>
+```
+
+This temporarily changes the speed for the current phase only. It does not edit the config.
+
+Use this with no number to reset the current phase back to the configured speed:
+
+```text
+/lavaspeedbypass
+```
 
 ## Permissions
 
