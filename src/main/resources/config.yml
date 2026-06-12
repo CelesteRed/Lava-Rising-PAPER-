@@ -1,0 +1,94 @@
+configVersion: 2
+
+logging:
+  console: true
+
+lobby:
+  world: world
+  x: 0.5
+  z: 0.5
+  radius: 32
+
+start:
+  minPlayers: 2
+  publicStartWhenNoAdminOnline: true
+  countdownSeconds: 10
+
+round:
+  arenaDiameter: 100
+  minSpawnY: 60
+  startLavaY: -64
+  maxLavaY: 319
+  deathmatchStartY: 314
+  countdownDifficulty: EASY
+  surfaceDifficulty: HARD
+  giveBlocks: true
+  blockGiveRate: 16
+  maxGivenBlocks: 256
+  defaultBlock: DIRT
+  sandMayhemBlock: SAND
+  sandMayhemChance: 10
+  villageStartChance: 10
+  milestoneMessages: true
+  sounds: true
+  clearItemsOnLavaRise: false
+
+lava:
+  speeds:
+    startToY0: 2.0
+    y0ToY60: 2.0
+    y60ToY100: 1.0
+    y100ToDeathmatch: 1.0
+    deathmatchToTop: 10.0
+
+deathmatch:
+  borderRadius: 1
+  borderShrinkSeconds: 300
+  borderDamage: true
+
+celebration:
+  seconds: 15
+  fireworkIntervalTicks: 10
+  minFireworks: 1
+  maxFireworks: 8
+
+arenaSelection:
+  minDistanceFromLobby: 512
+  minDistanceFromUsedArenas: 512
+  searchMinRadius: 700
+  searchMaxRadius: 5000
+  maxAttempts: 96
+  treeCheckRadius: 32
+  villageSearchRadiusChunks: 320
+  villageSearchAttempts: 12
+  biomeWhitelist:
+    - FOREST
+    - BIRCH_FOREST
+    - OLD_GROWTH_BIRCH_FOREST
+    - FLOWER_FOREST
+    - DARK_FOREST
+    - PLAINS
+    - SUNFLOWER_PLAINS
+    - SAVANNA
+    - SAVANNA_PLATEAU
+    - TAIGA
+    - OLD_GROWTH_PINE_TAIGA
+    - OLD_GROWTH_SPRUCE_TAIGA
+    - SPARSE_JUNGLE
+    - JUNGLE
+    - CHERRY_GROVE
+    - MEADOW
+    - WINDSWEPT_FOREST
+
+performance:
+  forceLoadArenaChunks: true
+  forceLoadedChunkRadius: 4
+  lavaChunksPerTick: 12
+  integrityChunksPerTick: 1
+  integrityVerticalBatch: 24
+
+buildLimits:
+  enabled: true
+  lockY: 160
+  unlockWhenLavaY: 60
+  warningY: 200

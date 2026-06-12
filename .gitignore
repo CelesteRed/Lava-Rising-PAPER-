@@ -1,0 +1,60 @@
+# IDE/editor metadata
+.idea/
+*.iml
+.vscode/
+
+# Java build output
+build/
+target/
+out/
+*.class
+
+# Packaged plugin artifacts
+*.jar
+
+# Local scratch/decompile/extraction folders
+work_api/
+work_extracted/
+work_javap/
+work_*/
+
+# v1 archive cleanup
+v1/.git/
+v1/.idea/
+v1/build/
+v1/work_api/
+v1/work_extracted/
+v1/work_javap/
+v1/work_*/
+v1/*.jar
+v1/src/main/resources/META-INF/
+
+# Runtime/server files
+*.log
+logs/
+crash-reports/
+server.properties
+banned-ips.json
+banned-players.json
+ops.json
+usercache.json
+whitelist.json
+world/
+world_nether/
+world_the_end/
+
+# Secrets and local environment
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+secrets/
+private/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

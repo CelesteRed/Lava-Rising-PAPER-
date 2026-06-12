@@ -1,0 +1,56 @@
+arenaDiameter: 100
+lavaRisingSpeed:
+  start: 2.0
+  reach0: 2.0
+  reach60: 1.0
+  reach100: 1.0
+  reach314: 10.0
+  heightLimit: 10.0
+suddenDeathDelay: 300
+suddenDeathSpeed: 300
+suddenDeathRadius: 1
+celebrationTime: 15
+soundsEnabled: true
+milestoneMessages: true
+giveDirt: true
+pvpAtSurface: true
+borderDamage: true
+consoleLogging: true
+noMoreBottomDwellers: 0
+buildingBlockGiveRate: 16
+maxGivenBlocks: 256
+sandMayhemChance: 10
+villageStartChance: 10
+minPlayersToStart: 2
+lobby:
+  x: 0.5
+  z: 0.5
+  radius: 32
+arenaSelection:
+  minDistanceFromLobby: 512
+  minDistanceFromUsedArenas: 512
+  searchMinRadius: 700
+  searchMaxRadius: 5000
+  maxAttempts: 96
+  treeCheckRadius: 32
+  villageSearchRadiusChunks: 320
+  villageSearchAttempts: 12
+  biomeWhitelist:
+    - FOREST
+    - BIRCH_FOREST
+    - OLD_GROWTH_BIRCH_FOREST
+    - FLOWER_FOREST
+    - DARK_FOREST
+    - PLAINS
+    - SUNFLOWER_PLAINS
+    - SAVANNA
+    - SAVANNA_PLATEAU
+    - TAIGA
+    - OLD_GROWTH_PINE_TAIGA
+    - OLD_GROWTH_SPRUCE_TAIGA
+    - SPARSE_JUNGLE
+    - JUNGLE
+    - CHERRY_GROVE
+    - MEADOW
+    - WINDSWEPT_FOREST
+usedArenaCenters: []

@@ -1,0 +1,46 @@
+name: LavaRising
+version: 1.2.36
+main: com.lavarising.plugin.LavaRisingPlugin
+api-version: '26.1.2'
+description: Configurable lava rising arena with lobby start, village chance, fresh arena selection, Sand Mayhem, and lava speed bypass
+
+commands:
+  lavarising:
+    description: Start, stop, check status, or configure the lava rising event
+    usage: /lavarising <start|stop|status|settings> or /lavarising settings <option> <value>
+  start:
+    description: Start the lava rising event from the lobby
+    usage: /start
+    permission: lavarising.start
+  lavastart:
+    description: Start the lava rising event from the lobby (shorthand)
+    usage: /lavastart
+    permission: lavarising.start
+  lavastop:
+    description: Stop the lava rising event (shorthand)
+    usage: /lavastop
+    permission: lavarising.use
+  lavaspeedbypass:
+    description: Temporarily override the current phase lava speed during a running game
+    usage: /lavaspeedbypass [seconds-per-block]
+    permission: lavarising.use
+  reset:
+    description: Manually end the current game and return everyone to lobby
+    usage: /reset
+    permission: lavarising.use
+  revive:
+    description: Revive an eliminated player onto a chosen or random alive player
+    usage: /revive <player> [targetPlayer]
+    permission: lavarising.use
+  setlobby:
+    description: Set the waiting lobby center to your current position or configured X/Z
+    usage: /setlobby [radius] or /setlobby <x> <z> [radius]
+    permission: lavarising.use
+
+permissions:
+  lavarising.start:
+    description: Allows public lobby start when lobby/admin rules allow it
+    default: true
+  lavarising.use:
+    description: Allows use of lava rising admin commands
+    default: op

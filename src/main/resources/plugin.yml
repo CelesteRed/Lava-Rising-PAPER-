@@ -1,0 +1,20 @@
+name: LavaRising
+version: 2.0.0
+main: com.lavarising.v2.LavaRisingPlugin
+api-version: '26.1.2'
+description: Rebuilt lava rising minigame with lobby, fresh arenas, deathmatch, revive, and optimized lava tasks
+
+commands:
+  lava:
+    description: LavaRising 2.0.0 command
+    usage: /lava <start|stop|status|bypass|revive|setlobby|set|reload>
+    aliases:
+      - lavarising
+
+permissions:
+  lavarising.start:
+    description: Allows public start when no admin is online
+    default: true
+  lavarising.admin:
+    description: Allows admin LavaRising commands
+    default: op
