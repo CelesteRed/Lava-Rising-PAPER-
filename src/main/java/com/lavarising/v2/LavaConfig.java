@@ -67,6 +67,7 @@ public final class LavaConfig {
         int startLavaY = clamp(config.getInt("round.startLavaY", -64), -256, 319);
         int maxLavaY = clamp(config.getInt("round.maxLavaY", 319), startLavaY + 1, 319);
         int deathmatchStartY = clamp(config.getInt("round.deathmatchStartY", 314), startLavaY + 1, maxLavaY);
+        int pvpEnableY = clamp(config.getInt("round.pvpEnableY", 60), startLavaY, maxLavaY);
         Material defaultBlock = material(config.getString("round.defaultBlock", "DIRT"), Material.DIRT);
         Material sandBlock = material(config.getString("round.sandMayhemBlock", "SAND"), Material.SAND);
         Round round = new Round(
@@ -76,6 +77,7 @@ public final class LavaConfig {
                 startLavaY,
                 maxLavaY,
                 deathmatchStartY,
+                pvpEnableY,
                 difficulty(config.getString("round.countdownDifficulty", "EASY"), Difficulty.EASY),
                 difficulty(config.getString("round.surfaceDifficulty", "HARD"), Difficulty.HARD),
                 config.getBoolean("round.giveBlocks", true),
@@ -258,6 +260,7 @@ public final class LavaConfig {
                         int startLavaY,
                         int maxLavaY,
                         int deathmatchStartY,
+                        int pvpEnableY,
                         Difficulty countdownDifficulty,
                         Difficulty surfaceDifficulty,
                         boolean giveBlocks,

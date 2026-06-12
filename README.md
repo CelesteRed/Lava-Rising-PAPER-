@@ -30,6 +30,7 @@ Rebuilt Paper `26.1.2` lava rising plugin.
 - The waiting lobby is a separate void world named `lobby`, kept at daytime with a generated platform.
 - Rounds still use `round.world` by default, usually `world`.
 - OP/admin players bypass waiting-lobby pulls so the lobby can be inspected and moved.
+- Player PVP starts off and enables when lava reaches `round.pvpEnableY`, default `60`.
 - Deathmatch starts when lava reaches `round.deathmatchStartY` and lava continues rising to `round.maxLavaY`.
 - Dropped-item clearing on lava rise is disabled by default.
 - Speeds at or below `performance.fastLavaSpeedThreshold` use `performance.fastLavaChunksPerTick` so `/lava bypass 0.1` is not capped by normal anti-lag batching.

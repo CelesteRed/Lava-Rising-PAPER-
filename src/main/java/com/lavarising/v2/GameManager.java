@@ -412,6 +412,10 @@ public final class GameManager {
             world.setDifficulty(plugin.settings().round().surfaceDifficulty());
             plugin.logGame("Surface reached: difficulty set to " + world.getDifficulty() + ".");
         }
+        if (world != null && !roundPvpEnabled && currentY >= plugin.settings().round().pvpEnableY()) {
+            setRoundPvp(world, true, "lava reached Y=" + currentY);
+            broadcast(ChatColor.RED + "" + ChatColor.BOLD + "PVP ENABLED");
+        }
     }
 
     private void teleportParticipants(World world, List<Player> participants, ArenaCenter center) {
@@ -481,7 +485,7 @@ public final class GameManager {
 
         state = GameState.RUNNING;
         World world = arenaService.mainWorld();
-        setRoundPvp(world, true, "round live");
+        setRoundPvp(world, false, "round live until lava Y=" + plugin.settings().round().pvpEnableY());
         for (Player player : alivePlayers()) {
             if (shouldManageGameMode(player)) {
                 player.setGameMode(GameMode.SURVIVAL);
@@ -492,7 +496,8 @@ public final class GameManager {
         startActionBarLoop();
         scheduleIntegrityLoop();
         scheduleNextLavaRise();
-        plugin.logGame("Round live: pvp=true, lavaStartY=" + plugin.settings().round().startLavaY()
+        plugin.logGame("Round live: pvp=false until lavaY=" + plugin.settings().round().pvpEnableY()
+                + ", lavaStartY=" + plugin.settings().round().startLavaY()
                 + ", deathmatchStartY=" + plugin.settings().round().deathmatchStartY()
                 + ", maxY=" + plugin.settings().round().maxLavaY() + ".");
     }

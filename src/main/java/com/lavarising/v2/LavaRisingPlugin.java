@@ -88,28 +88,39 @@ public final class LavaRisingPlugin extends JavaPlugin {
 
     private void migrateConfig() {
         int configVersion = getConfig().getInt("configVersion", 1);
-        if (configVersion >= 3) {
-            return;
+        boolean changed = false;
+
+        if (configVersion < 3) {
+            String previousLobbyWorld = getConfig().getString("lobby.world", "world");
+            if (!getConfig().contains("round.world")) {
+                getConfig().set("round.world", previousLobbyWorld == null || previousLobbyWorld.isBlank()
+                        ? "world"
+                        : previousLobbyWorld);
+            }
+
+            getConfig().set("lobby.world", "lobby");
+            setIfMissing("lobby.voidWorld", true);
+            setIfMissing("lobby.lockDaylightCycle", true);
+            setIfMissing("lobby.time", 6000L);
+            setIfMissing("lobby.platform.y", 64);
+            setIfMissing("lobby.platform.radius", 36);
+            setIfMissing("lobby.platform.material", "SMOOTH_STONE");
+            changed = true;
         }
 
-        String previousLobbyWorld = getConfig().getString("lobby.world", "world");
-        if (!getConfig().contains("round.world")) {
-            getConfig().set("round.world", previousLobbyWorld == null || previousLobbyWorld.isBlank()
-                    ? "world"
-                    : previousLobbyWorld);
+        if (configVersion < 4) {
+            setIfMissing("round.pvpEnableY", 60);
+            changed = true;
         }
 
-        getConfig().set("lobby.world", "lobby");
-        setIfMissing("lobby.voidWorld", true);
-        setIfMissing("lobby.lockDaylightCycle", true);
-        setIfMissing("lobby.time", 6000L);
-        setIfMissing("lobby.platform.y", 64);
-        setIfMissing("lobby.platform.radius", 36);
-        setIfMissing("lobby.platform.material", "SMOOTH_STONE");
-        getConfig().set("configVersion", 3);
-        saveConfig();
-        getLogger().info("[LavaRising] Migrated config to version 3 with lobby world 'lobby' and game world '"
-                + getConfig().getString("round.world", "world") + "'.");
+        if (changed) {
+            getConfig().set("configVersion", 4);
+            saveConfig();
+            getLogger().info("[LavaRising] Migrated config to version 4 with lobby world '"
+                    + getConfig().getString("lobby.world", "lobby")
+                    + "', game world '" + getConfig().getString("round.world", "world")
+                    + "', and PVP enable Y=" + getConfig().getInt("round.pvpEnableY", 60) + ".");
+        }
     }
 
     private void setIfMissing(String path, Object value) {

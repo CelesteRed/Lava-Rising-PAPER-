@@ -30,6 +30,7 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
             "start.minPlayers",
             "start.countdownSeconds",
             "round.arenaDiameter",
+            "round.pvpEnableY",
             "round.blockGiveRate",
             "round.maxGivenBlocks",
             "round.sandMayhemChance",

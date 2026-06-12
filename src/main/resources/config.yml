@@ -1,4 +1,4 @@
-configVersion: 3
+configVersion: 4
 
 logging:
   console: true
@@ -28,6 +28,7 @@ round:
   startLavaY: -64
   maxLavaY: 319
   deathmatchStartY: 314
+  pvpEnableY: 60
   countdownDifficulty: EASY
   surfaceDifficulty: HARD
   giveBlocks: true
