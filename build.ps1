@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $javac = "$env:USERPROFILE\.jdks\temurin-25.0.3\bin\javac.exe"
 $jar = "$env:USERPROFILE\.jdks\temurin-25.0.3\bin\jar.exe"
-$classpathArgs = Join-Path $PSScriptRoot '..\v1\build\javac.args'
+$classpathArgs = Join-Path $PSScriptRoot 'v1\build\javac.args'
 $classpath = (Get-Content $classpathArgs)[3].Trim('"')
 $classes = Join-Path $PSScriptRoot 'build\classes'
 $outputJar = Join-Path $PSScriptRoot 'LavaRising-2.0.0-paper26.1.2.jar'

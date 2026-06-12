@@ -30,3 +30,4 @@ Rebuilt Paper `26.1.2` lava rising plugin.
 - OP/admin players bypass waiting-lobby pulls so the lobby can be inspected and moved.
 - Deathmatch starts when lava reaches `round.deathmatchStartY` and lava continues rising to `round.maxLavaY`.
 - Dropped-item clearing on lava rise is disabled by default.
+- Speeds at or below `performance.fastLavaSpeedThreshold` use `performance.fastLavaChunksPerTick` so `/lava bypass 0.1` is not capped by normal anti-lag batching.

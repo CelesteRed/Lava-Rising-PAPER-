@@ -497,7 +497,7 @@ public final class GameManager {
                 startDeathmatch();
             }
             handleSurfaceDifficulty();
-            fillLavaLayerBatched(currentY, () -> {
+            fillLavaLayerBatched(currentY, seconds, () -> {
                 broadcastMilestone(currentY);
                 giveRoundBlocks();
                 if (plugin.settings().round().clearItemsOnLavaRise()) {
@@ -510,13 +510,31 @@ public final class GameManager {
         tasks.add(task);
     }
 
-    private void fillLavaLayerBatched(int y, Runnable whenDone) {
+    private void fillLavaLayerBatched(int y, double secondsPerLayer, Runnable whenDone) {
         if (arenaBounds == null || arenaCenter == null) {
             whenDone.run();
             return;
         }
 
         Queue<ChunkKey> chunks = arenaChunks();
+        int chunksThisTick = lavaChunkBudgetFor(secondsPerLayer);
+        if (chunksThisTick >= chunks.size()) {
+            int changed = 0;
+            while (!chunks.isEmpty()) {
+                ChunkKey key = chunks.remove();
+                World world = Bukkit.getWorld(key.worldName());
+                if (world != null) {
+                    changed += fillLavaLayerInChunk(world.getChunkAt(key.x(), key.z()), y);
+                }
+            }
+            plugin.logGame("Lava layer filled: y=" + y + ", changedBlocks=" + changed
+                    + ", phase=" + phaseForNextLayer().configKey()
+                    + ", chunksPerTick=instant"
+                    + ", alive=" + alivePlayers().size() + ".");
+            whenDone.run();
+            return;
+        }
+
         BukkitRunnable runnable = new BukkitRunnable() {
             private int changed;
 
@@ -527,7 +545,6 @@ public final class GameManager {
                     return;
                 }
 
-                int chunksThisTick = plugin.settings().performance().lavaChunksPerTick();
                 for (int i = 0; i < chunksThisTick && !chunks.isEmpty(); i++) {
                     ChunkKey key = chunks.remove();
                     World world = Bukkit.getWorld(key.worldName());
@@ -541,6 +558,7 @@ public final class GameManager {
                     cancel();
                     plugin.logGame("Lava layer filled: y=" + y + ", changedBlocks=" + changed
                             + ", phase=" + phaseForNextLayer().configKey()
+                            + ", chunksPerTick=" + chunksThisTick
                             + ", alive=" + alivePlayers().size() + ".");
                     whenDone.run();
                 }
@@ -548,6 +566,14 @@ public final class GameManager {
         };
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
         tasks.add(task);
+    }
+
+    private int lavaChunkBudgetFor(double secondsPerLayer) {
+        LavaConfig.Performance performance = plugin.settings().performance();
+        if (secondsPerLayer <= performance.fastLavaSpeedThreshold()) {
+            return Math.max(performance.lavaChunksPerTick(), performance.fastLavaChunksPerTick());
+        }
+        return performance.lavaChunksPerTick();
     }
 
     private int fillLavaLayerInChunk(Chunk chunk, int y) {

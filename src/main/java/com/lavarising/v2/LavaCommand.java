@@ -35,6 +35,8 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
             "performance.forceLoadArenaChunks",
             "performance.forceLoadedChunkRadius",
             "performance.lavaChunksPerTick",
+            "performance.fastLavaSpeedThreshold",
+            "performance.fastLavaChunksPerTick",
             "arenaSelection.biomeWhitelist");
 
     private final LavaRisingPlugin plugin;

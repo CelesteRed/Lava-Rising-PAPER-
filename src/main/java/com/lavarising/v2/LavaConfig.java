@@ -117,6 +117,8 @@ public final class LavaConfig {
                 config.getBoolean("performance.forceLoadArenaChunks", true),
                 clamp(config.getInt("performance.forceLoadedChunkRadius", 4), 0, 32),
                 clamp(config.getInt("performance.lavaChunksPerTick", 2), 1, 64),
+                clamp(config.getDouble("performance.fastLavaSpeedThreshold", 0.15D), 0.0D, 5.0D),
+                clamp(config.getInt("performance.fastLavaChunksPerTick", 256), 1, 2048),
                 clamp(config.getInt("performance.integrityChunksPerTick", 1), 1, 64),
                 clamp(config.getInt("performance.integrityVerticalBatch", 24), 1, 384));
 
@@ -286,6 +288,8 @@ public final class LavaConfig {
     public record Performance(boolean forceLoadArenaChunks,
                               int forceLoadedChunkRadius,
                               int lavaChunksPerTick,
+                              double fastLavaSpeedThreshold,
+                              int fastLavaChunksPerTick,
                               int integrityChunksPerTick,
                               int integrityVerticalBatch) {
     }

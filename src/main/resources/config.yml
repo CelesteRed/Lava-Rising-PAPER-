@@ -84,6 +84,8 @@ performance:
   forceLoadArenaChunks: true
   forceLoadedChunkRadius: 4
   lavaChunksPerTick: 12
+  fastLavaSpeedThreshold: 0.15
+  fastLavaChunksPerTick: 256
   integrityChunksPerTick: 1
   integrityVerticalBatch: 24
 
