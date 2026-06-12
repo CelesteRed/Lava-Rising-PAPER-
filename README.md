@@ -27,6 +27,8 @@ Rebuilt Paper `26.1.2` lava rising plugin.
 
 - Runtime arena history is stored in `data.yml`.
 - Config is grouped by lobby, start, round, lava, deathmatch, celebration, arena selection, performance, and build limits.
+- The waiting lobby is a separate void world named `lobby`, kept at daytime with a generated platform.
+- Rounds still use `round.world` by default, usually `world`.
 - OP/admin players bypass waiting-lobby pulls so the lobby can be inspected and moved.
 - Deathmatch starts when lava reaches `round.deathmatchStartY` and lava continues rising to `round.maxLavaY`.
 - Dropped-item clearing on lava rise is disabled by default.

@@ -19,9 +19,14 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
             "start", "stop", "reset", "status", "bypass", "revive", "setlobby", "set", "get", "reload", "help");
     private static final List<String> SETTINGS = List.of(
             "logging.console",
+            "lobby.world",
             "lobby.x",
             "lobby.z",
             "lobby.radius",
+            "lobby.platform.y",
+            "lobby.platform.radius",
+            "lobby.platform.material",
+            "round.world",
             "start.minPlayers",
             "start.countdownSeconds",
             "round.arenaDiameter",
@@ -76,7 +81,7 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
         switch (result) {
             case STARTED -> sender.sendMessage(ChatColor.YELLOW + "Round countdown started.");
             case ALREADY_ACTIVE -> sender.sendMessage(ChatColor.RED + "A round is already active.");
-            case NO_WORLD -> sender.sendMessage(ChatColor.RED + "Could not find the configured lobby world.");
+            case NO_WORLD -> sender.sendMessage(ChatColor.RED + "Could not find the configured game world.");
             case NOT_ENOUGH_PLAYERS -> sender.sendMessage(ChatColor.RED + "Need "
                     + plugin.settings().start().minPlayers() + " players in lobby. Current: "
                     + plugin.game().lobbyPlayers().size() + ".");
@@ -109,11 +114,12 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
         LavaConfig.Lobby lobby = plugin.settings().lobby();
         sender.sendMessage(ChatColor.YELLOW + "LavaRising 2.0.0");
         sender.sendMessage(ChatColor.GRAY + "State: " + ChatColor.WHITE + plugin.game().state());
-        sender.sendMessage(ChatColor.GRAY + "Lobby: " + ChatColor.WHITE
+        sender.sendMessage(ChatColor.GRAY + "Lobby: " + ChatColor.WHITE + lobby.world() + " "
                 + formatCoordinate(lobby.x()) + ", " + formatCoordinate(lobby.z())
                 + ChatColor.GRAY + " radius " + ChatColor.WHITE + lobby.radius()
                 + ChatColor.GRAY + " players " + ChatColor.WHITE
                 + plugin.game().lobbyPlayers().size() + "/" + plugin.settings().start().minPlayers());
+        sender.sendMessage(ChatColor.GRAY + "Game world: " + ChatColor.WHITE + plugin.settings().round().world());
         sender.sendMessage(ChatColor.GRAY + "Lava Y: " + ChatColor.WHITE + plugin.game().currentY()
                 + ChatColor.GRAY + " | PVP: " + (plugin.game().isCombatLive()
                 ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF"));
@@ -194,6 +200,11 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
             if (args.length == 1 || args.length == 2) {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage(ChatColor.RED + "Console usage: /lava setlobby <x> <z> [radius]");
+                    return;
+                }
+                if (!player.getWorld().getName().equals(plugin.settings().lobby().world())) {
+                    sender.sendMessage(ChatColor.RED + "Stand in the lobby world first: "
+                            + plugin.settings().lobby().world() + ".");
                     return;
                 }
                 Integer radius = args.length == 2 ? Integer.parseInt(args[1]) : null;

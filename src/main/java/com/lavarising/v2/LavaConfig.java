@@ -48,10 +48,16 @@ public final class LavaConfig {
     public static LavaConfig load(FileConfiguration config) {
         boolean consoleLogging = config.getBoolean("logging.console", true);
         Lobby lobby = new Lobby(
-                config.getString("lobby.world", "world"),
+                config.getString("lobby.world", "lobby"),
                 config.getDouble("lobby.x", 0.5D),
                 config.getDouble("lobby.z", 0.5D),
-                clamp(config.getInt("lobby.radius", 32), 4, 512));
+                clamp(config.getInt("lobby.radius", 32), 4, 512),
+                config.getBoolean("lobby.voidWorld", true),
+                config.getBoolean("lobby.lockDaylightCycle", true),
+                clamp(config.getLong("lobby.time", 6000L), 0L, 24000L),
+                clamp(config.getInt("lobby.platform.y", 64), -64, 300),
+                clamp(config.getInt("lobby.platform.radius", 36), 4, 256),
+                material(config.getString("lobby.platform.material", "SMOOTH_STONE"), Material.SMOOTH_STONE));
 
         Start start = new Start(
                 clamp(config.getInt("start.minPlayers", 2), 1, 200),
@@ -64,6 +70,7 @@ public final class LavaConfig {
         Material defaultBlock = material(config.getString("round.defaultBlock", "DIRT"), Material.DIRT);
         Material sandBlock = material(config.getString("round.sandMayhemBlock", "SAND"), Material.SAND);
         Round round = new Round(
+                config.getString("round.world", "world"),
                 clamp(config.getInt("round.arenaDiameter", 100), 32, 2000),
                 clamp(config.getInt("round.minSpawnY", 60), -64, 300),
                 startLavaY,
@@ -176,6 +183,10 @@ public final class LavaConfig {
         return Math.max(min, Math.min(max, value));
     }
 
+    private static long clamp(long value, long min, long max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
     private static double clamp(double value, double min, double max) {
         if (!Double.isFinite(value)) {
             return min;
@@ -226,13 +237,23 @@ public final class LavaConfig {
         return Set.copyOf(parsed);
     }
 
-    public record Lobby(String world, double x, double z, int radius) {
+    public record Lobby(String world,
+                        double x,
+                        double z,
+                        int radius,
+                        boolean voidWorld,
+                        boolean lockDaylightCycle,
+                        long time,
+                        int platformY,
+                        int platformRadius,
+                        Material platformMaterial) {
     }
 
     public record Start(int minPlayers, boolean publicStartWhenNoAdminOnline, int countdownSeconds) {
     }
 
-    public record Round(int arenaDiameter,
+    public record Round(String world,
+                        int arenaDiameter,
                         int minSpawnY,
                         int startLavaY,
                         int maxLavaY,

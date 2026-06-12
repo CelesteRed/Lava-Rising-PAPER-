@@ -6,6 +6,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class LavaRisingPlugin extends JavaPlugin {
     private LavaConfig settings;
     private ArenaStore arenaStore;
+    private LobbyWorldService lobbyWorldService;
     private ArenaService arenaService;
     private GameManager gameManager;
 
@@ -13,9 +14,12 @@ public final class LavaRisingPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         reloadConfig();
+        migrateConfig();
         settings = LavaConfig.load(getConfig());
         arenaStore = new ArenaStore(this);
         arenaStore.load();
+        lobbyWorldService = new LobbyWorldService(this);
+        lobbyWorldService.ensureLobbyWorld();
         arenaService = new ArenaService(this, arenaStore);
         gameManager = new GameManager(this, arenaService, arenaStore);
 
@@ -48,7 +52,11 @@ public final class LavaRisingPlugin extends JavaPlugin {
 
     public void reloadSettings() {
         reloadConfig();
+        migrateConfig();
         settings = LavaConfig.load(getConfig());
+        if (lobbyWorldService != null) {
+            lobbyWorldService.ensureLobbyWorld();
+        }
         logGame("Config reloaded.");
     }
 
@@ -58,6 +66,10 @@ public final class LavaRisingPlugin extends JavaPlugin {
 
     public ArenaService arena() {
         return arenaService;
+    }
+
+    public LobbyWorldService lobbyWorld() {
+        return lobbyWorldService;
     }
 
     public GameManager game() {
@@ -71,6 +83,38 @@ public final class LavaRisingPlugin extends JavaPlugin {
     public void logGame(String message) {
         if (settings == null || settings.consoleLogging()) {
             getLogger().info("[LavaRising] " + message);
+        }
+    }
+
+    private void migrateConfig() {
+        int configVersion = getConfig().getInt("configVersion", 1);
+        if (configVersion >= 3) {
+            return;
+        }
+
+        String previousLobbyWorld = getConfig().getString("lobby.world", "world");
+        if (!getConfig().contains("round.world")) {
+            getConfig().set("round.world", previousLobbyWorld == null || previousLobbyWorld.isBlank()
+                    ? "world"
+                    : previousLobbyWorld);
+        }
+
+        getConfig().set("lobby.world", "lobby");
+        setIfMissing("lobby.voidWorld", true);
+        setIfMissing("lobby.lockDaylightCycle", true);
+        setIfMissing("lobby.time", 6000L);
+        setIfMissing("lobby.platform.y", 64);
+        setIfMissing("lobby.platform.radius", 36);
+        setIfMissing("lobby.platform.material", "SMOOTH_STONE");
+        getConfig().set("configVersion", 3);
+        saveConfig();
+        getLogger().info("[LavaRising] Migrated config to version 3 with lobby world 'lobby' and game world '"
+                + getConfig().getString("round.world", "world") + "'.");
+    }
+
+    private void setIfMissing(String path, Object value) {
+        if (!getConfig().contains(path)) {
+            getConfig().set(path, value);
         }
     }
 }

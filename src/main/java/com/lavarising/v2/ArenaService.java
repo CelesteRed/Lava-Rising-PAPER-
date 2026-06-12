@@ -30,19 +30,29 @@ public final class ArenaService {
     }
 
     public World mainWorld() {
-        String configuredWorld = plugin.settings().lobby().world();
+        String configuredWorld = plugin.settings().round().world();
         World world = Bukkit.getWorld(configuredWorld);
         if (world != null) {
             return world;
         }
         return Bukkit.getWorlds().stream()
                 .filter(candidate -> candidate.getEnvironment() == Environment.NORMAL)
+                .filter(candidate -> !candidate.getName().equals(plugin.settings().lobby().world()))
                 .findFirst()
                 .orElse(Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().getFirst());
     }
 
+    public World lobbyWorld() {
+        String configuredWorld = plugin.settings().lobby().world();
+        World world = Bukkit.getWorld(configuredWorld);
+        if (world != null) {
+            return world;
+        }
+        return plugin.lobbyWorld().ensureLobbyWorld();
+    }
+
     public Location lobbyLocation() {
-        World world = mainWorld();
+        World world = lobbyWorld();
         if (world == null) {
             return null;
         }

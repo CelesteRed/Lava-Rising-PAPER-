@@ -1,13 +1,20 @@
-configVersion: 2
+configVersion: 3
 
 logging:
   console: true
 
 lobby:
-  world: world
+  world: lobby
   x: 0.5
   z: 0.5
   radius: 32
+  voidWorld: true
+  lockDaylightCycle: true
+  time: 6000
+  platform:
+    y: 64
+    radius: 36
+    material: SMOOTH_STONE
 
 start:
   minPlayers: 2
@@ -15,6 +22,7 @@ start:
   countdownSeconds: 10
 
 round:
+  world: world
   arenaDiameter: 100
   minSpawnY: 60
   startLavaY: -64
