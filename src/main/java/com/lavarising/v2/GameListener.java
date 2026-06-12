@@ -117,7 +117,13 @@ public final class GameListener implements Listener {
         }
 
         if (target instanceof Player targetPlayer) {
-            event.setCancelled(!game.isActivePlayer(targetPlayer) || !attacker.getWorld().getPVP());
+            if (!game.isActivePlayer(targetPlayer) || !game.isPvpEnabled()) {
+                event.setCancelled(true);
+                return;
+            }
+
+            game.ensureRoundPvpState();
+            event.setCancelled(false);
             return;
         }
 

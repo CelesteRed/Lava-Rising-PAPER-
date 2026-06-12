@@ -60,6 +60,7 @@ public final class GameManager {
     private ArenaBounds arenaBounds;
     private Material buildingBlock = Material.DIRT;
     private boolean sandMayhemRound;
+    private boolean roundPvpEnabled;
     private Double lavaSpeedBypassSeconds;
     private Double savedBorderSize;
     private Location savedBorderCenter;
@@ -95,6 +96,23 @@ public final class GameManager {
 
     public boolean isCombatLive() {
         return state == GameState.RUNNING || state == GameState.DEATHMATCH;
+    }
+
+    public boolean isPvpEnabled() {
+        return roundPvpEnabled && isCombatLive();
+    }
+
+    public void ensureRoundPvpState() {
+        World world = arenaService.mainWorld();
+        if (world == null || !isRoundActive()) {
+            return;
+        }
+
+        boolean expected = isPvpEnabled();
+        if (world.getPVP() != expected) {
+            world.setPVP(expected);
+            plugin.logGame("Corrected game world PVP: enabled=" + expected + ", state=" + state + ".");
+        }
     }
 
     public boolean isActivePlayer(Player player) {
@@ -168,7 +186,7 @@ public final class GameManager {
         saveWorldState(world);
         world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, false);
         world.setDifficulty(plugin.settings().round().countdownDifficulty());
-        world.setPVP(false);
+        setRoundPvp(world, false, "countdown");
         prepareBorder(world, selection.center(), plugin.settings().round().arenaDiameter());
         chooseRoundBlock();
 
@@ -463,9 +481,7 @@ public final class GameManager {
 
         state = GameState.RUNNING;
         World world = arenaService.mainWorld();
-        if (world != null) {
-            world.setPVP(true);
-        }
+        setRoundPvp(world, true, "round live");
         for (Player player : alivePlayers()) {
             if (shouldManageGameMode(player)) {
                 player.setGameMode(GameMode.SURVIVAL);
@@ -666,6 +682,7 @@ public final class GameManager {
         state = GameState.DEATHMATCH;
         World world = arenaService.mainWorld();
         if (world != null && arenaCenter != null) {
+            setRoundPvp(world, true, "deathmatch");
             WorldBorder border = world.getWorldBorder();
             border.setDamageAmount(plugin.settings().deathmatch().borderDamage() ? 0.2D : 0.0D);
             border.setCenter(arenaCenter.x() + 0.5D, arenaCenter.z() + 0.5D);
@@ -686,13 +703,10 @@ public final class GameManager {
                     cancel();
                     return;
                 }
-                String pvp = isCombatLive() ? ChatColor.GREEN + "PVP ON" : ChatColor.RED + "PVP OFF";
-                String speed = lavaSpeedBypassSeconds == null
-                        ? formatSeconds(plugin.settings().lavaSpeed(phaseForNextLayer())) + "s"
-                        : ChatColor.GOLD + formatSeconds(lavaSpeedBypassSeconds) + "s bypass";
+                ensureRoundPvpState();
+                String pvp = isPvpEnabled() ? ChatColor.GREEN + "on" : ChatColor.RED + "off";
                 String message = ChatColor.RED + "Lava Y " + ChatColor.WHITE + currentY
-                        + ChatColor.DARK_GRAY + " | " + pvp
-                        + ChatColor.DARK_GRAY + " | " + ChatColor.GRAY + "Speed " + ChatColor.WHITE + speed;
+                        + ChatColor.DARK_GRAY + " | " + ChatColor.GRAY + "PVP " + pvp;
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     player.sendActionBar(message);
                 }
@@ -756,9 +770,7 @@ public final class GameManager {
         stopTasks();
         state = GameState.CELEBRATION;
         World world = arenaService.mainWorld();
-        if (world != null) {
-            world.setPVP(false);
-        }
+        setRoundPvp(world, false, "celebration");
 
         savedFlightStates.clear();
         showAllPlayers();
@@ -883,6 +895,14 @@ public final class GameManager {
         }
     }
 
+    private void setRoundPvp(World world, boolean enabled, String reason) {
+        roundPvpEnabled = enabled;
+        if (world != null && world.getPVP() != enabled) {
+            world.setPVP(enabled);
+        }
+        plugin.logGame("Round PVP " + (enabled ? "enabled" : "disabled") + ": reason=" + reason + ".");
+    }
+
     private void restoreWorldState(World world) {
         if (savedBorderSize != null && savedBorderCenter != null) {
             WorldBorder border = world.getWorldBorder();
@@ -927,6 +947,7 @@ public final class GameManager {
         eliminatedPlayers.clear();
         integrityQueue.clear();
         integrityRepairCursor.clear();
+        roundPvpEnabled = false;
         currentY = plugin.settings().round().startLavaY() - 1;
         arenaCenter = null;
         arenaBounds = null;

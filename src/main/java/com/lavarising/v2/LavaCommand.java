@@ -121,7 +121,7 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
                 + plugin.game().lobbyPlayers().size() + "/" + plugin.settings().start().minPlayers());
         sender.sendMessage(ChatColor.GRAY + "Game world: " + ChatColor.WHITE + plugin.settings().round().world());
         sender.sendMessage(ChatColor.GRAY + "Lava Y: " + ChatColor.WHITE + plugin.game().currentY()
-                + ChatColor.GRAY + " | PVP: " + (plugin.game().isCombatLive()
+                + ChatColor.GRAY + " | PVP: " + (plugin.game().isPvpEnabled()
                 ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF"));
         sender.sendMessage(ChatColor.GRAY + "Speed: " + ChatColor.WHITE + speedLabel());
     }
