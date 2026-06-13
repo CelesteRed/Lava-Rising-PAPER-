@@ -1,0 +1,20 @@
+# Classic gamemode — the original lava rising round.
+enabled: true
+displayName: "Classic"
+color: GRAY
+icon: DIRT
+description:
+  - "The original lava rising game."
+  - "Fair and square, dirt blocks."
+
+# Building blocks handed out as the lava rises.
+buildingBlock: DIRT
+giveBuildingBlocks: true
+# Break blocks by hand like Silk Touch (keep the exact block). false = vanilla drops.
+silkTouchHands: false
+
+# Optional attribute overrides. Add "<name>: <number>" lines under "attributes:".
+# Available (default): max_health(20) movement_speed(0.1) attack_damage(2) attack_speed(4)
+#   armor(0) knockback_resistance(0) scale(1.0) jump_strength(0.42) gravity(0.08)
+#   safe_fall_distance(3.0) fall_damage_multiplier(1.0) step_height(0.6) max_absorption(0)
+attributes: {}

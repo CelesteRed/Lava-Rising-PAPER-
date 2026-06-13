@@ -1,0 +1,27 @@
+# Team Chaos - TDM — red vs blue team deathmatch split by a dividing obsidian wall.
+enabled: true
+displayName: "Team Chaos - TDM"
+color: GOLD
+icon: TNT
+description:
+  - "Red vs Blue team deathmatch!"
+  - "The wall drops when lava hits Y100."
+
+buildingBlock: DIRT
+giveBuildingBlocks: false
+# Break blocks by hand like Silk Touch (keep the exact block). false = vanilla drops.
+silkTouchHands: false
+
+# Optional attribute overrides. Add "<name>: <number>" lines under "attributes:".
+# Available (default): max_health(20) movement_speed(0.1) attack_damage(2) attack_speed(4)
+#   armor(0) knockback_resistance(0) scale(1.0) jump_strength(0.42) gravity(0.08)
+#   safe_fall_distance(3.0) fall_damage_multiplier(1.0) step_height(0.6) max_absorption(0)
+attributes: {}
+
+# Team Chaos tuning. Players get red/blue leather armour (Curse of Binding + Protection),
+# split into bow+arrow / iron-sword kits, with one TNT-bow "chaos" player per team.
+teamChaos:
+  protectionLevel: 1     # Protection enchant level on the leather armour
+  wallBaseY: -64         # obsidian wall starts at this Y (world bottom)
+  wallTopY: 180          # obsidian wall reaches this Y
+  wallRemoveLavaY: 100   # wall disappears once the lava reaches this Y

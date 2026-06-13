@@ -4,15 +4,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -21,11 +25,19 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -47,11 +59,13 @@ public final class GameListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        // Delay so the player is fully loaded in before we assign them (dead/spectator),
+        // otherwise the gamemode set may not stick and /lava revive can't find them.
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline()) {
                 plugin.game().handleJoin(player);
             }
-        }, 2L);
+        }, 20L);
     }
 
     @EventHandler
@@ -62,27 +76,59 @@ public final class GameListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onMove(PlayerMoveEvent event) {
-        GameManager game = plugin.game();
-        if (!game.isWaiting() || !game.shouldEnforceLobbyBoundary(event.getPlayer())) {
-            return;
+    @EventHandler
+    public void onDeath(PlayerDeathEvent event) {
+        Player killer = event.getEntity().getKiller();
+        if (killer != null && killer != event.getEntity()) {
+            plugin.game().handleKill(killer);
         }
-
-        Location to = event.getTo();
-        if (to == null || !hasHorizontalMove(event.getFrom(), to) || plugin.arena().isInLobby(to)) {
-            return;
-        }
-
-        event.setCancelled(true);
-        game.sendPlayerToLobby(event.getPlayer());
-        event.getPlayer().sendActionBar(ChatColor.RED + "Stay inside the lobby radius: "
-                + ChatColor.WHITE + plugin.settings().lobby().radius() + ChatColor.RED + " blocks.");
+        plugin.game().handleDeath(event.getEntity());
     }
 
     @EventHandler
-    public void onDeath(PlayerDeathEvent event) {
-        plugin.game().handleDeath(event.getEntity());
+    public void onInventoryClick(InventoryClickEvent event) {
+        Inventory top = event.getView().getTopInventory();
+        if (!(top.getHolder() instanceof GamemodeVote vote)) {
+            return;
+        }
+        event.setCancelled(true);
+        if (event.getClickedInventory() == top && event.getWhoClicked() instanceof Player player) {
+            vote.handleClick(player, event.getSlot());
+        }
+    }
+
+    @EventHandler
+    public void onJuggernautHelmet(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player) || !plugin.game().isJuggernaut(player)) {
+            return;
+        }
+        // The Juggernaut's wither-skull helmet can't be taken off.
+        if (event.getSlotType() == InventoryType.SlotType.ARMOR
+                && event.getCurrentItem() != null
+                && event.getCurrentItem().getType() == Material.WITHER_SKELETON_SKULL) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!(event.getInventory().getHolder() instanceof GamemodeVote vote)) {
+            return;
+        }
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        // Keep players locked in the menu until they have actually voted for a gamemode.
+        if (vote.isClosing() || vote != plugin.game().currentVote() || vote.hasVoted(player)) {
+            return;
+        }
+        player.sendMessage(ChatColor.RED + "You must vote for a gamemode before closing!");
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!vote.isClosing() && vote == plugin.game().currentVote() && !vote.hasVoted(player)
+                    && player.isOnline() && player.getGameMode() != GameMode.SPECTATOR) {
+                vote.open(player);
+            }
+        });
     }
 
     @EventHandler
@@ -111,13 +157,13 @@ public final class GameListener implements Listener {
             return;
         }
 
-        if (!game.isActivePlayer(attacker)) {
-            event.setCancelled(true);
-            return;
-        }
-
         if (target instanceof Player targetPlayer) {
-            if (!game.isActivePlayer(targetPlayer) || !game.isPvpEnabled()) {
+            if (!game.isPvpEnabled() || !game.canFight(attacker) || !game.canFight(targetPlayer)) {
+                event.setCancelled(true);
+                return;
+            }
+            // Team modes: teammates (hunters, or red/blue) can't hurt each other.
+            if (game.isFriendlyFire(attacker, targetPlayer)) {
                 event.setCancelled(true);
                 return;
             }
@@ -127,8 +173,39 @@ public final class GameListener implements Listener {
             return;
         }
 
-        if (target instanceof LivingEntity) {
+        // PvE: mobs/animals can be hit by anyone genuinely playing once the round is live.
+        if (target instanceof LivingEntity && attacker.getGameMode() != GameMode.SPECTATOR) {
             event.setCancelled(false);
+        }
+    }
+
+    @EventHandler
+    public void onShootBow(EntityShootBowEvent event) {
+        ItemStack bow = event.getBow();
+        if (bow == null || !bow.hasItemMeta()) {
+            return;
+        }
+        ItemMeta meta = bow.getItemMeta();
+        if (meta != null && meta.hasDisplayName()
+                && ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase("TNT Bow")) {
+            event.getProjectile().setMetadata("lr_tntbow", new FixedMetadataValue(plugin, true));
+        }
+    }
+
+    @EventHandler
+    public void onProjectileHit(ProjectileHitEvent event) {
+        if (!event.getEntity().hasMetadata("lr_tntbow")) {
+            return;
+        }
+        Location location = event.getEntity().getLocation();
+        World world = location.getWorld();
+        event.getEntity().remove();
+        if (world == null) {
+            return;
+        }
+        // Wherever the TNT-bow arrow lands, summon 3 primed TNT for the chaos.
+        for (int i = 0; i < 3; i++) {
+            world.spawn(location.clone().add((i - 1) * 0.6D, 0.5D, 0.0D), TNTPrimed.class);
         }
     }
 
@@ -154,6 +231,29 @@ public final class GameListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         repairAfterBlockEvent(event.getBlock(), "block break by " + event.getPlayer().getName());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onSilkTouchHands(BlockBreakEvent event) {
+        GameManager game = plugin.game();
+        // When a gamemode enables silkTouchHands, breaking a block by hand drops the block
+        // itself (silk-touch style) so players always collect exactly what they mine.
+        if (!game.isLavaRising() || !plugin.gamemodes().settings(game.activeMode()).silkTouchHands()) {
+            return;
+        }
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+        if (!game.isActivePlayer(player) || game.isCoveredByActiveLava(block)) {
+            return;
+        }
+        Material type = block.getType();
+        if (!type.isBlock() || !type.isItem()) {
+            return;
+        }
+        event.setDropItems(false);
+        for (ItemStack extra : player.getInventory().addItem(new ItemStack(type)).values()) {
+            player.getWorld().dropItemNaturally(block.getLocation(), extra);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -259,9 +359,5 @@ public final class GameListener implements Listener {
             }
         }
         return null;
-    }
-
-    private boolean hasHorizontalMove(Location from, Location to) {
-        return from.getBlockX() != to.getBlockX() || from.getBlockZ() != to.getBlockZ();
     }
 }

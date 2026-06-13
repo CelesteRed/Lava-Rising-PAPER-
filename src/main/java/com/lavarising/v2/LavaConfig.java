@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Set;
 import org.bukkit.Difficulty;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -49,20 +50,20 @@ public final class LavaConfig {
         boolean consoleLogging = config.getBoolean("logging.console", true);
         Lobby lobby = new Lobby(
                 config.getString("lobby.world", "lobby"),
+                sanitizeNamespace(config.getString("lobby.namespace", "cr_lava")),
                 config.getDouble("lobby.x", 0.5D),
+                config.getDouble("lobby.y", 65.0D),
                 config.getDouble("lobby.z", 0.5D),
-                clamp(config.getInt("lobby.radius", 32), 4, 512),
-                config.getBoolean("lobby.voidWorld", true),
-                config.getBoolean("lobby.lockDaylightCycle", true),
-                clamp(config.getLong("lobby.time", 6000L), 0L, 24000L),
-                clamp(config.getInt("lobby.platform.y", 64), -64, 300),
-                clamp(config.getInt("lobby.platform.radius", 36), 4, 256),
-                material(config.getString("lobby.platform.material", "SMOOTH_STONE"), Material.SMOOTH_STONE));
+                (float) config.getDouble("lobby.yaw", 0.0D),
+                (float) config.getDouble("lobby.pitch", 0.0D),
+                config.getBoolean("lobby.configured", false));
 
         Start start = new Start(
                 clamp(config.getInt("start.minPlayers", 2), 1, 200),
                 config.getBoolean("start.publicStartWhenNoAdminOnline", true),
-                clamp(config.getInt("start.countdownSeconds", 10), 3, 60));
+                clamp(config.getInt("start.countdownSeconds", 10), 3, 60),
+                config.getBoolean("start.gamemodeVote", true),
+                clamp(config.getInt("start.voteSeconds", 15), 3, 120));
 
         int startLavaY = clamp(config.getInt("round.startLavaY", -64), -256, 319);
         int maxLavaY = clamp(config.getInt("round.maxLavaY", 319), startLavaY + 1, 319);
@@ -78,8 +79,8 @@ public final class LavaConfig {
                 maxLavaY,
                 deathmatchStartY,
                 pvpEnableY,
-                difficulty(config.getString("round.countdownDifficulty", "EASY"), Difficulty.EASY),
-                difficulty(config.getString("round.surfaceDifficulty", "HARD"), Difficulty.HARD),
+                difficulty(config.getString("round.countdownDifficulty", "PEACEFUL"), Difficulty.PEACEFUL),
+                difficulty(config.getString("round.surfaceDifficulty", "EASY"), Difficulty.EASY),
                 config.getBoolean("round.giveBlocks", true),
                 clamp(config.getInt("round.blockGiveRate", 16), 0, 2304),
                 clamp(config.getInt("round.maxGivenBlocks", 256), 0, 2304),
@@ -89,15 +90,17 @@ public final class LavaConfig {
                 sandBlock,
                 config.getBoolean("round.milestoneMessages", true),
                 config.getBoolean("round.sounds", true),
-                config.getBoolean("round.clearItemsOnLavaRise", false));
+                config.getBoolean("round.clearItemsOnLavaRise", false),
+                config.getBoolean("round.phaseTitles", true));
 
         EnumMap<LavaPhase, Double> lavaSpeeds = new EnumMap<>(LavaPhase.class);
         for (LavaPhase phase : LavaPhase.values()) {
             double defaultSpeed = phase == LavaPhase.DEATHMATCH_TO_TOP ? 10.0D : phase == LavaPhase.Y60_TO_Y100
                     || phase == LavaPhase.Y100_TO_DEATHMATCH ? 1.0D : 2.0D;
-            lavaSpeeds.put(phase, clamp(config.getDouble("lava.speeds." + phase.configKey(), defaultSpeed),
-                    0.05D,
-                    600.0D));
+            // Phase speeds are set via round.phase.<1-5>; fall back to the legacy lava.speeds.<key>, then default.
+            double legacy = config.getDouble("lava.speeds." + phase.configKey(), defaultSpeed);
+            double speed = config.getDouble("round.phase." + (phase.ordinal() + 1), legacy);
+            lavaSpeeds.put(phase, clamp(speed, 0.05D, 600.0D));
         }
 
         Deathmatch deathmatch = new Deathmatch(
@@ -107,9 +110,10 @@ public final class LavaConfig {
 
         Celebration celebration = new Celebration(
                 clamp(config.getInt("celebration.seconds", 15), 1, 120),
-                clamp(config.getInt("celebration.fireworkIntervalTicks", 10), 1, 200),
+                clamp(config.getInt("celebration.fireworkIntervalTicks", 20), 1, 200),
                 clamp(config.getInt("celebration.minFireworks", 1), 1, 8),
-                clamp(config.getInt("celebration.maxFireworks", 8), 1, 32));
+                clamp(config.getInt("celebration.maxFireworks", 3), 1, 32),
+                config.getBoolean("celebration.lobbyCelebration", true));
 
         ArenaSelectionSettings arenaSelection = new ArenaSelectionSettings(
                 clamp(config.getInt("arenaSelection.minDistanceFromLobby", 512), 0, 50000),
@@ -207,6 +211,15 @@ public final class LavaConfig {
         }
     }
 
+    private static String sanitizeNamespace(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "cr_lava";
+        }
+        // Minecraft dimension namespaces must be lowercase [a-z0-9._-]; sanitize anything else.
+        String cleaned = raw.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._-]", "_");
+        return cleaned.isEmpty() ? "cr_lava" : cleaned;
+    }
+
     private static Material material(String raw, Material fallback) {
         if (raw == null) {
             return fallback;
@@ -240,18 +253,22 @@ public final class LavaConfig {
     }
 
     public record Lobby(String world,
+                        String namespace,
                         double x,
+                        double y,
                         double z,
-                        int radius,
-                        boolean voidWorld,
-                        boolean lockDaylightCycle,
-                        long time,
-                        int platformY,
-                        int platformRadius,
-                        Material platformMaterial) {
+                        float yaw,
+                        float pitch,
+                        boolean configured) {
+        public NamespacedKey dimensionKey() {
+            // Both halves must be valid Minecraft key characters or NamespacedKey throws.
+            String value = world.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9/._-]", "_");
+            return new NamespacedKey(namespace, value.isEmpty() ? "lobby" : value);
+        }
     }
 
-    public record Start(int minPlayers, boolean publicStartWhenNoAdminOnline, int countdownSeconds) {
+    public record Start(int minPlayers, boolean publicStartWhenNoAdminOnline, int countdownSeconds,
+                        boolean gamemodeVote, int voteSeconds) {
     }
 
     public record Round(String world,
@@ -272,7 +289,8 @@ public final class LavaConfig {
                         Material sandMayhemBlock,
                         boolean milestoneMessages,
                         boolean sounds,
-                        boolean clearItemsOnLavaRise) {
+                        boolean clearItemsOnLavaRise,
+                        boolean phaseTitles) {
     }
 
     public record Deathmatch(int borderRadius, int borderShrinkSeconds, boolean borderDamage) {
@@ -281,9 +299,11 @@ public final class LavaConfig {
         }
     }
 
-    public record Celebration(int seconds, int fireworkIntervalTicks, int minFireworks, int maxFireworks) {
+    public record Celebration(int seconds, int fireworkIntervalTicks, int minFireworks, int maxFireworks,
+            boolean lobbyCelebration) {
         Celebration normalized() {
-            return new Celebration(seconds, fireworkIntervalTicks, minFireworks, Math.max(minFireworks, maxFireworks));
+            return new Celebration(seconds, fireworkIntervalTicks, minFireworks, Math.max(minFireworks, maxFireworks),
+                    lobbyCelebration);
         }
     }
 

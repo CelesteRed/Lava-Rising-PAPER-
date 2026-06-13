@@ -1,0 +1,63 @@
+# Juggernaut — one buffed player versus everyone else (1 vs All).
+enabled: true
+displayName: "Juggernaut"
+color: DARK_RED
+icon: IRON_CHESTPLATE
+description:
+  - "One mighty Juggernaut with double"
+  - "health and gear takes on everyone!"
+
+buildingBlock: DIRT
+giveBuildingBlocks: true
+# Break blocks by hand like Silk Touch (keep the exact block). false = vanilla drops.
+silkTouchHands: false
+
+# Optional attribute overrides. Add "<name>: <number>" lines under "attributes:".
+# Available (default): max_health(20) movement_speed(0.1) attack_damage(2) attack_speed(4)
+#   armor(0) knockback_resistance(0) scale(1.0) jump_strength(0.42) gravity(0.08)
+#   safe_fall_distance(3.0) fall_damage_multiplier(1.0) step_height(0.6) max_absorption(0)
+attributes: {}
+
+# The Juggernaut's buffs. They also start in full diamond armour with a locked
+# wither-skull helmet, and glow red once PVP turns on.
+juggernautHealthMultiplier: 2.0   # 2.0 = double (40 HP / 20 hearts)
+juggernautBlockMultiplier: 2      # 2 = double the building blocks handed out
+juggernautIron: 8                 # iron ingots given at the start
+juggernautResistanceLevel: 2      # Resistance effect level (2 = Resistance II, ~40% less damage)
+juggernautIron: 8                 # iron given by the fallback kit if no kits are configured
+
+# The Juggernaut rolls ONE random kit from this list each round. Everyone else gets NOTHING.
+# Each kit: optional "armor:" tier (DIAMOND/NETHERITE/IRON/GOLDEN/CHAINMAIL/LEATHER) and an
+# "items:" list. Item: type (material), optional amount, name, enchants (key: level), potion.
+# A wither-skeleton skull / mob head is auto-worn as the helmet.
+kits:
+  # Classic wither-skull tank.
+  - armor: DIAMOND
+    items:
+      - { type: WITHER_SKELETON_SKULL }
+      - { type: IRON_INGOT, amount: 8 }
+  # Mace rusher.
+  - armor: DIAMOND
+    items:
+      - { type: MACE, enchants: { wind_burst: 1 } }
+      - { type: WIND_CHARGE, amount: 16 }
+      - { type: GOLDEN_APPLE, amount: 4 }
+      - { type: GOLDEN_CARROT, amount: 4 }
+  # Netherite spear.
+  - armor: DIAMOND
+    items:
+      - { type: NETHERITE_SWORD, name: "&fNetherite Spear" }
+      - { type: POTION, potion: STRONG_SWIFTNESS }
+      - { type: GOLDEN_APPLE, amount: 4 }
+      - { type: BREAD, amount: 8 }
+  # Knockback stick.
+  - armor: NETHERITE
+    items:
+      - { type: STICK, name: "&fKnockback Stick", enchants: { knockback: 2 } }
+      - { type: COOKED_CHICKEN, amount: 16 }
+  # Archer.
+  - armor: IRON
+    items:
+      - { type: BOW }
+      - { type: ARROW, amount: 32 }
+      - { type: POTION, potion: REGENERATION }

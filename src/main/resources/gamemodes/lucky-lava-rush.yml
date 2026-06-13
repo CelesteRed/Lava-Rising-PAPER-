@@ -1,0 +1,102 @@
+# Lucky Lava Rush — random items rain down for pure chaos.
+enabled: true
+displayName: "Lucky Lava Rush"
+color: GOLD
+icon: CHEST
+description:
+  - "Get random items just like in"
+  - "Lucky Pillars and fight in chaos!"
+
+buildingBlock: DIRT
+giveBuildingBlocks: true
+# Break blocks by hand like Silk Touch (keep the exact block). false = vanilla drops.
+silkTouchHands: false
+
+# Optional attribute overrides. Add "<name>: <number>" lines under "attributes:".
+# Available (default): max_health(20) movement_speed(0.1) attack_damage(2) attack_speed(4)
+#   armor(0) knockback_resistance(0) scale(1.0) jump_strength(0.42) gravity(0.08)
+#   safe_fall_distance(3.0) fall_damage_multiplier(1.0) step_height(0.6) max_absorption(0)
+attributes: {}
+
+# How often (seconds) every alive player is handed random loot, and how many items each time.
+luckyIntervalSeconds: 1
+luckyItemsPerDrop: 1
+
+# Blocks excluded from the "*" (every block) pool so they can't break the game.
+# Clear this list if you truly want EVERY block in the common pool.
+excludeBlocks:
+  - BEDROCK
+  - BARRIER
+  - COMMAND_BLOCK
+  - CHAIN_COMMAND_BLOCK
+  - REPEATING_COMMAND_BLOCK
+  - STRUCTURE_BLOCK
+  - JIGSAW
+  - SPAWNER
+  - LIGHT
+
+# Rarity tiers. Each drop first rolls a rarity by its weight, then a random item from
+# that tier. Every handed item is renamed and lore-tagged in its rarity colour.
+# Item entries can be: a material name, "*" (every obtainable block), or
+# "splash:<PotionType>" for a splash potion (e.g. splash:HARMING).
+rarities:
+  common:
+    label: "Common"
+    color: WHITE
+    weight: 75
+    items:
+      - "*"
+  rare:
+    label: "Rare"
+    color: AQUA
+    weight: 22
+    # Weapons and armour below diamond tier.
+    items:
+      - WOODEN_SWORD
+      - STONE_SWORD
+      - IRON_SWORD
+      - GOLDEN_SWORD
+      - WOODEN_AXE
+      - STONE_AXE
+      - IRON_AXE
+      - GOLDEN_AXE
+      - BOW
+      - CROSSBOW
+      - SHIELD
+      - LEATHER_HELMET
+      - LEATHER_CHESTPLATE
+      - LEATHER_LEGGINGS
+      - LEATHER_BOOTS
+      - CHAINMAIL_HELMET
+      - CHAINMAIL_CHESTPLATE
+      - CHAINMAIL_LEGGINGS
+      - CHAINMAIL_BOOTS
+      - IRON_HELMET
+      - IRON_CHESTPLATE
+      - IRON_LEGGINGS
+      - IRON_BOOTS
+      - GOLDEN_HELMET
+      - GOLDEN_CHESTPLATE
+      - GOLDEN_LEGGINGS
+      - GOLDEN_BOOTS
+  legendary:
+    label: "Legendary"
+    color: GOLD
+    weight: 3
+    items:
+      - ELYTRA
+      - ENCHANTED_GOLDEN_APPLE
+      - TOTEM_OF_UNDYING
+      - DIAMOND_HELMET
+      - DIAMOND_CHESTPLATE
+      - DIAMOND_LEGGINGS
+      - DIAMOND_BOOTS
+      - CREEPER_SPAWN_EGG
+      - ZOMBIE_SPAWN_EGG
+      - SKELETON_SPAWN_EGG
+      - WITHER_SKELETON_SPAWN_EGG
+      - BLAZE_SPAWN_EGG
+      - splash:HARMING
+      - splash:POISON
+      - splash:WEAKNESS
+      - splash:SLOWNESS

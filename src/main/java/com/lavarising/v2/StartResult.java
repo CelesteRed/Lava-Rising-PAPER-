@@ -2,6 +2,7 @@ package com.lavarising.v2;
 
 public enum StartResult {
     STARTED,
+    SEARCHING,
     ALREADY_ACTIVE,
     NO_WORLD,
     NOT_ENOUGH_PLAYERS,

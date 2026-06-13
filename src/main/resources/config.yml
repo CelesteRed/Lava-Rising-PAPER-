@@ -1,25 +1,31 @@
-configVersion: 4
+configVersion: 9
 
 logging:
   console: true
 
+# The lobby is a dedicated, EMPTY void dimension (default key cr_lava:lobby), separate from the
+# arena world. No platform is generated - build your own spawn in the dimension, stand on it, and
+# run /lava setlobby. Players spawn here when they join while no round is running and after rounds.
+# Until a spawn is set, players use the arena world spawn so nobody drops into the void.
+# Namespaces must be lowercase [a-z0-9._-]; "CR_Lava" becomes "cr_lava".
 lobby:
   world: lobby
+  namespace: cr_lava
+  # Spawn point inside the lobby dimension. Set with /lava setlobby (stand where you want it).
+  configured: false
   x: 0.5
+  y: 65.0
   z: 0.5
-  radius: 32
-  voidWorld: true
-  lockDaylightCycle: true
-  time: 6000
-  platform:
-    y: 64
-    radius: 36
-    material: SMOOTH_STONE
+  yaw: 0.0
+  pitch: 0.0
 
 start:
   minPlayers: 2
   publicStartWhenNoAdminOnline: true
   countdownSeconds: 10
+  # When true, /lava start opens a gamemode vote; voteSeconds is how long it stays open.
+  gamemodeVote: true
+  voteSeconds: 15
 
 round:
   world: world
@@ -29,8 +35,9 @@ round:
   maxLavaY: 319
   deathmatchStartY: 314
   pvpEnableY: 60
-  countdownDifficulty: EASY
-  surfaceDifficulty: HARD
+  # Difficulty follows PVP: peaceful while PVP is off, the combat difficulty once PVP turns on.
+  countdownDifficulty: PEACEFUL
+  surfaceDifficulty: EASY
   giveBlocks: true
   blockGiveRate: 16
   maxGivenBlocks: 256
@@ -41,14 +48,16 @@ round:
   milestoneMessages: true
   sounds: true
   clearItemsOnLavaRise: false
-
-lava:
-  speeds:
-    startToY0: 2.0
-    y0ToY60: 2.0
-    y60ToY100: 1.0
-    y100ToDeathmatch: 1.0
-    deathmatchToTop: 10.0
+  # Show a big on-screen title when each phase is reached (Y=0, Y=60, Y=100, BORDER CLOSING).
+  phaseTitles: true
+  # Seconds per lava block for each phase. Change in-game with /lava set round.phase.<1-5> <seconds>.
+  # 1: start->Y0, 2: Y0->Y60, 3: Y60->Y100, 4: Y100->deathmatch, 5: deathmatch->top.
+  phase:
+    '1': 2.0
+    '2': 2.0
+    '3': 1.0
+    '4': 1.0
+    '5': 10.0
 
 deathmatch:
   borderRadius: 1
@@ -57,9 +66,11 @@ deathmatch:
 
 celebration:
   seconds: 15
-  fireworkIntervalTicks: 10
+  fireworkIntervalTicks: 20
   minFireworks: 1
-  maxFireworks: 8
+  maxFireworks: 3
+  # Teleport everyone up to the lobby for the celebration instead of staying in the arena.
+  lobbyCelebration: true
 
 arenaSelection:
   minDistanceFromLobby: 512

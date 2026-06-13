@@ -1,5 +1,6 @@
 package com.lavarising.v2;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 public final class LavaCommand implements CommandExecutor, TabCompleter {
@@ -20,17 +22,20 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SETTINGS = List.of(
             "logging.console",
             "lobby.world",
-            "lobby.x",
-            "lobby.z",
-            "lobby.radius",
-            "lobby.platform.y",
-            "lobby.platform.radius",
-            "lobby.platform.material",
+            "lobby.namespace",
             "round.world",
             "start.minPlayers",
             "start.countdownSeconds",
             "round.arenaDiameter",
             "round.pvpEnableY",
+            "round.countdownDifficulty",
+            "round.surfaceDifficulty",
+            "round.phase.1",
+            "round.phase.2",
+            "round.phase.3",
+            "round.phase.4",
+            "round.phase.5",
+            "round.phaseTitles",
             "round.blockGiveRate",
             "round.maxGivenBlocks",
             "round.sandMayhemChance",
@@ -53,13 +58,22 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // /start [gamemode] is a shortcut for /lava start [gamemode].
+        if (command.getName().equalsIgnoreCase("start")) {
+            String[] startArgs = new String[args.length + 1];
+            startArgs[0] = "start";
+            System.arraycopy(args, 0, startArgs, 1, args.length);
+            handleStart(sender, startArgs);
+            return true;
+        }
+
         if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
             sendHelp(sender);
             return true;
         }
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "start" -> handleStart(sender);
+            case "start" -> handleStart(sender, args);
             case "stop" -> handleStop(sender);
             case "reset" -> handleReset(sender);
             case "status" -> handleStatus(sender);
@@ -74,21 +88,46 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private void handleStart(CommandSender sender) {
+    private void handleStart(CommandSender sender, String[] args) {
         if (!canStart(sender)) {
             return;
         }
-        StartResult result = plugin.game().startRound();
-        switch (result) {
-            case STARTED -> sender.sendMessage(ChatColor.YELLOW + "Round countdown started.");
-            case ALREADY_ACTIVE -> sender.sendMessage(ChatColor.RED + "A round is already active.");
-            case NO_WORLD -> sender.sendMessage(ChatColor.RED + "Could not find the configured game world.");
-            case NOT_ENOUGH_PLAYERS -> sender.sendMessage(ChatColor.RED + "Need "
-                    + plugin.settings().start().minPlayers() + " players in lobby. Current: "
-                    + plugin.game().lobbyPlayers().size() + ".");
-            case NO_ARENA_FOUND -> sender.sendMessage(ChatColor.RED
-                    + "No playable fresh arena found. Try increasing arenaSelection.maxAttempts/searchMaxRadius.");
+        if (plugin.game().isVoting()) {
+            sender.sendMessage(ChatColor.RED + "A gamemode vote is already in progress.");
+            return;
         }
+        if (!plugin.game().isWaiting()) {
+            sender.sendMessage(ChatColor.RED + "A round is already active.");
+            return;
+        }
+        int lobbyCount = plugin.game().lobbyPlayers().size();
+        int min = plugin.settings().start().minPlayers();
+        if (lobbyCount < min) {
+            sender.sendMessage(ChatColor.RED + "Need " + min + " players in lobby. Current: " + lobbyCount + ".");
+            return;
+        }
+
+        if (args.length >= 2) {
+            if (!requireAdmin(sender)) {
+                return;
+            }
+            GameModeType mode = GameModeType.byId(args[1]);
+            if (mode == null) {
+                sender.sendMessage(ChatColor.RED + "Unknown gamemode '" + args[1] + "'. Options: " + modeIdList());
+                return;
+            }
+            sender.sendMessage(ChatColor.YELLOW + "Forcing gamemode "
+                    + plugin.gamemodes().settings(mode).coloredName() + ChatColor.YELLOW + "...");
+            plugin.game().startRoundWithFeedback(mode);
+            return;
+        }
+
+        plugin.game().beginGamemodeVote();
+    }
+
+    private String modeIdList() {
+        return java.util.Arrays.stream(GameModeType.values()).map(GameModeType::id)
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     private void handleStop(CommandSender sender) {
@@ -113,11 +152,14 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
 
     private void handleStatus(CommandSender sender) {
         LavaConfig.Lobby lobby = plugin.settings().lobby();
-        sender.sendMessage(ChatColor.YELLOW + "LavaRising 2.0.0");
+        sender.sendMessage(ChatColor.YELLOW + "LavaRising 2.5.30");
         sender.sendMessage(ChatColor.GRAY + "State: " + ChatColor.WHITE + plugin.game().state());
-        sender.sendMessage(ChatColor.GRAY + "Lobby: " + ChatColor.WHITE + lobby.world() + " "
-                + formatCoordinate(lobby.x()) + ", " + formatCoordinate(lobby.z())
-                + ChatColor.GRAY + " radius " + ChatColor.WHITE + lobby.radius()
+        sender.sendMessage(ChatColor.GRAY + "Lobby dimension: " + ChatColor.WHITE + lobby.dimensionKey()
+                + ChatColor.GRAY + " spawn " + ChatColor.WHITE
+                + (lobby.configured()
+                        ? formatCoordinate(lobby.x()) + ", " + formatCoordinate(lobby.y())
+                                + ", " + formatCoordinate(lobby.z())
+                        : "platform centre")
                 + ChatColor.GRAY + " players " + ChatColor.WHITE
                 + plugin.game().lobbyPlayers().size() + "/" + plugin.settings().start().minPlayers());
         sender.sendMessage(ChatColor.GRAY + "Game world: " + ChatColor.WHITE + plugin.settings().round().world());
@@ -160,23 +202,73 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
             return;
         }
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /lava revive <player> [targetPlayer]");
+            sender.sendMessage(ChatColor.RED + "Usage: /lava revive <player|@a|@r|@s|@p> [anchor]");
             return;
         }
-        Player player = Bukkit.getPlayerExact(args[1]);
-        Player anchor = args.length >= 3 ? Bukkit.getPlayerExact(args[2]) : null;
-        if (player == null) {
-            sender.sendMessage(ChatColor.RED + "Player is not online: " + args[1]);
+        List<Player> targets = resolvePlayers(sender, args[1]);
+        if (targets.isEmpty()) {
+            sender.sendMessage(ChatColor.RED + "No online players matched: " + args[1]);
             return;
         }
-        if (args.length >= 3 && anchor == null) {
-            sender.sendMessage(ChatColor.RED + "Target player is not online: " + args[2]);
-            return;
+        Player anchor = null;
+        if (args.length >= 3) {
+            String anchorToken = args[2];
+            List<Player> anchorMatches = resolvePlayers(sender, anchorToken);
+            if (anchorMatches.isEmpty()) {
+                sender.sendMessage(ChatColor.RED + "No online players matched anchor: " + anchorToken);
+                return;
+            }
+            // Prefer a living match so selectors like @r / @a land on a valid anchor instead
+            // of failing on a dead pick. If a selector matched only dead players, fall back to
+            // any alive player; an explicit name that isn't alive still reports the problem.
+            List<Player> aliveNow = plugin.game().alivePlayers();
+            for (Player candidate : anchorMatches) {
+                if (aliveNow.contains(candidate)) {
+                    anchor = candidate;
+                    break;
+                }
+            }
+            if (anchor == null && !anchorToken.startsWith("@")) {
+                anchor = anchorMatches.get(0);
+            }
         }
 
-        ReviveResult result = plugin.game().revive(player, anchor);
+        if (targets.size() == 1) {
+            reportRevive(sender, plugin.game().revive(targets.get(0), anchor), targets.get(0));
+            return;
+        }
+        // Bulk selector (e.g. @a): revive each match and summarise.
+        int revived = 0;
+        for (Player target : targets) {
+            if (plugin.game().revive(target, anchor).status() == ReviveStatus.REVIVED) {
+                revived++;
+            }
+        }
+        sender.sendMessage(ChatColor.YELLOW + "Revived " + revived + " of " + targets.size() + " matched players.");
+    }
+
+    // Resolves a target argument as a Minecraft selector (@a, @r, @s, @p, @e, names, etc.),
+    // falling back to an exact online-player name if it isn't a valid selector.
+    private List<Player> resolvePlayers(CommandSender sender, String token) {
+        List<Player> result = new ArrayList<>();
+        try {
+            for (Entity entity : Bukkit.selectEntities(sender, token)) {
+                if (entity instanceof Player player) {
+                    result.add(player);
+                }
+            }
+        } catch (IllegalArgumentException ex) {
+            Player player = Bukkit.getPlayerExact(token);
+            if (player != null) {
+                result.add(player);
+            }
+        }
+        return result;
+    }
+
+    private void reportRevive(CommandSender sender, ReviveResult result, Player target) {
         switch (result.status()) {
-            case REVIVED -> sender.sendMessage(ChatColor.YELLOW + "Revived " + player.getName()
+            case REVIVED -> sender.sendMessage(ChatColor.YELLOW + "Revived " + target.getName()
                     + " onto " + result.anchor().getName() + ".");
             case NOT_RUNNING -> sender.sendMessage(ChatColor.RED + "A live round must be running.");
             case PLAYER_NOT_ONLINE -> sender.sendMessage(ChatColor.RED + "Player is not online.");
@@ -192,42 +284,32 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
         if (!requireAdmin(sender)) {
             return;
         }
-        if (!plugin.game().isWaiting()) {
-            sender.sendMessage(ChatColor.RED + "Stop the current round before changing the lobby.");
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(ChatColor.RED + "Stand in the lobby dimension and run /lava setlobby.");
+            return;
+        }
+        if (!player.getWorld().getName().equals(plugin.settings().lobby().world())) {
+            sender.sendMessage(ChatColor.RED + "Stand inside the lobby dimension ("
+                    + plugin.settings().lobby().dimensionKey() + ") first. "
+                    + ChatColor.GRAY + "You spawn there on join when no round is running.");
             return;
         }
 
-        try {
-            if (args.length == 1 || args.length == 2) {
-                if (!(sender instanceof Player player)) {
-                    sender.sendMessage(ChatColor.RED + "Console usage: /lava setlobby <x> <z> [radius]");
-                    return;
-                }
-                if (!player.getWorld().getName().equals(plugin.settings().lobby().world())) {
-                    sender.sendMessage(ChatColor.RED + "Stand in the lobby world first: "
-                            + plugin.settings().lobby().world() + ".");
-                    return;
-                }
-                Integer radius = args.length == 2 ? Integer.parseInt(args[1]) : null;
-                Location location = player.getLocation();
-                setLobby(location.getX(), location.getZ(), radius);
-                sendLobbySet(sender);
-                return;
-            }
+        Location location = player.getLocation();
+        plugin.getConfig().set("lobby.x", location.getX());
+        plugin.getConfig().set("lobby.y", location.getY());
+        plugin.getConfig().set("lobby.z", location.getZ());
+        plugin.getConfig().set("lobby.yaw", location.getYaw());
+        plugin.getConfig().set("lobby.pitch", location.getPitch());
+        plugin.getConfig().set("lobby.configured", true);
+        plugin.saveConfig();
+        plugin.reloadSettings();
 
-            if (args.length == 3 || args.length == 4) {
-                double x = Double.parseDouble(args[1]);
-                double z = Double.parseDouble(args[2]);
-                Integer radius = args.length == 4 ? Integer.parseInt(args[3]) : null;
-                setLobby(x, z, radius);
-                sendLobbySet(sender);
-                return;
-            }
-
-            sender.sendMessage(ChatColor.RED + "Usage: /lava setlobby [radius] or /lava setlobby <x> <z> [radius]");
-        } catch (NumberFormatException ex) {
-            sender.sendMessage(ChatColor.RED + "Lobby X/Z must be numbers and radius must be a whole number.");
-        }
+        LavaConfig.Lobby lobby = plugin.settings().lobby();
+        sender.sendMessage(ChatColor.YELLOW + "Lobby spawn set to " + ChatColor.WHITE
+                + lobby.dimensionKey() + " " + formatCoordinate(lobby.x()) + ", "
+                + formatCoordinate(lobby.y()) + ", " + formatCoordinate(lobby.z())
+                + ChatColor.YELLOW + ". Players spawn here on join (no round) and after rounds.");
     }
 
     private void handleSet(CommandSender sender, String[] args) {
@@ -262,23 +344,6 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
         }
         plugin.reloadSettings();
         sender.sendMessage(ChatColor.YELLOW + "LavaRising config reloaded.");
-    }
-
-    private void setLobby(double x, double z, Integer radius) {
-        plugin.getConfig().set("lobby.x", x);
-        plugin.getConfig().set("lobby.z", z);
-        if (radius != null) {
-            plugin.getConfig().set("lobby.radius", Math.max(4, Math.min(512, radius)));
-        }
-        plugin.saveConfig();
-        plugin.reloadSettings();
-    }
-
-    private void sendLobbySet(CommandSender sender) {
-        LavaConfig.Lobby lobby = plugin.settings().lobby();
-        sender.sendMessage(ChatColor.YELLOW + "Lobby set to " + ChatColor.WHITE
-                + formatCoordinate(lobby.x()) + ", " + formatCoordinate(lobby.z())
-                + ChatColor.YELLOW + " radius " + ChatColor.WHITE + lobby.radius() + ChatColor.YELLOW + ".");
     }
 
     private boolean canStart(CommandSender sender) {
@@ -342,13 +407,17 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
 
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.YELLOW + "LavaRising commands:");
-        sender.sendMessage(ChatColor.GRAY + "/lava start" + ChatColor.DARK_GRAY + " - start from lobby");
+        sender.sendMessage(ChatColor.GRAY + "/lava start [gamemode]" + ChatColor.DARK_GRAY
+                + " - open the gamemode vote (or force a mode)");
+        sender.sendMessage(ChatColor.GRAY + "/start [gamemode]" + ChatColor.DARK_GRAY
+                + " - shortcut for /lava start");
         sender.sendMessage(ChatColor.GRAY + "/lava status" + ChatColor.DARK_GRAY + " - show state");
         sender.sendMessage(ChatColor.GRAY + "/lava bypass [seconds|clear]" + ChatColor.DARK_GRAY
                 + " - override lava speed");
-        sender.sendMessage(ChatColor.GRAY + "/lava setlobby [radius]" + ChatColor.DARK_GRAY + " - set lobby here");
-        sender.sendMessage(ChatColor.GRAY + "/lava revive <player> [target]" + ChatColor.DARK_GRAY
-                + " - revive a player");
+        sender.sendMessage(ChatColor.GRAY + "/lava setlobby" + ChatColor.DARK_GRAY
+                + " - set the lobby spawn (stand in the lobby dimension)");
+        sender.sendMessage(ChatColor.GRAY + "/lava revive <player|@a|@r|@s|@p> [anchor]" + ChatColor.DARK_GRAY
+                + " - revive a player (supports target selectors)");
         sender.sendMessage(ChatColor.GRAY + "/lava set <path> <value>" + ChatColor.DARK_GRAY + " - update config");
     }
 
@@ -368,6 +437,12 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (command.getName().equalsIgnoreCase("start")) {
+            if (args.length == 1) {
+                return filter(java.util.Arrays.stream(GameModeType.values()).map(GameModeType::id).toList(), args[0]);
+            }
+            return Collections.emptyList();
+        }
         if (args.length == 1) {
             return filter(SUBCOMMANDS, args[0]);
         }
@@ -379,18 +454,12 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
             return filter(List.of("0.25", "0.5", "1", "2", "clear"), args[1]);
         }
         if (sub.equals("revive") && (args.length == 2 || args.length == 3)) {
-            return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[args.length - 1]);
+            List<String> options = new ArrayList<>(List.of("@a", "@p", "@r", "@s"));
+            Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
+            return filter(options, args[args.length - 1]);
         }
-        if (sub.equals("setlobby")) {
-            if (args.length == 2) {
-                return filter(List.of("32", "64", "0.5", "100.5", "-100.5"), args[1]);
-            }
-            if (args.length == 3) {
-                return filter(List.of("0.5", "100.5", "-100.5"), args[2]);
-            }
-            if (args.length == 4) {
-                return filter(List.of("32", "48", "64"), args[3]);
-            }
+        if (sub.equals("start") && args.length == 2) {
+            return filter(java.util.Arrays.stream(GameModeType.values()).map(GameModeType::id).toList(), args[1]);
         }
         return Collections.emptyList();
     }

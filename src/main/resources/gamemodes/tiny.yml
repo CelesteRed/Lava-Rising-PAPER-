@@ -1,0 +1,24 @@
+# Tiny — everyone shrinks down for a round of small-scale chaos.
+enabled: true
+displayName: "Tiny"
+color: LIGHT_PURPLE
+icon: RABBIT_FOOT
+description:
+  - "Everyone shrinks down tiny!"
+  - "Small targets, big chaos."
+
+buildingBlock: DIRT
+giveBuildingBlocks: true
+# Break blocks by hand like Silk Touch (keep the exact block). false = vanilla drops.
+silkTouchHands: false
+
+# Player size multiplier (0.0625 - 16). 1.0 = normal size, 0.5 = half size.
+scale: 0.5
+
+# Optional attribute overrides. Add "<name>: <number>" lines under "attributes:".
+# Available (default): max_health(20) movement_speed(0.1) attack_damage(2) attack_speed(4)
+#   armor(0) knockback_resistance(0) scale(1.0) jump_strength(0.42) gravity(0.08)
+#   safe_fall_distance(3.0) fall_damage_multiplier(1.0) step_height(0.6) max_absorption(0)
+attributes:
+  jump_strength: 0.84       # double the default 0.42 = jump twice as high
+  safe_fall_distance: 9.0   # triple the default 3 = take fall damage 3x higher
