@@ -48,6 +48,7 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
             "performance.lavaChunksPerTick",
             "performance.fastLavaSpeedThreshold",
             "performance.fastLavaChunksPerTick",
+            "arenaSelection.biomeWhitelistEnabled",
             "arenaSelection.biomeWhitelist");
 
     private final LavaRisingPlugin plugin;
@@ -152,7 +153,7 @@ public final class LavaCommand implements CommandExecutor, TabCompleter {
 
     private void handleStatus(CommandSender sender) {
         LavaConfig.Lobby lobby = plugin.settings().lobby();
-        sender.sendMessage(ChatColor.YELLOW + "LavaRising 2.5.30");
+        sender.sendMessage(ChatColor.YELLOW + "LavaRising 2.5.31");
         sender.sendMessage(ChatColor.GRAY + "State: " + ChatColor.WHITE + plugin.game().state());
         sender.sendMessage(ChatColor.GRAY + "Lobby dimension: " + ChatColor.WHITE + lobby.dimensionKey()
                 + ChatColor.GRAY + " spawn " + ChatColor.WHITE

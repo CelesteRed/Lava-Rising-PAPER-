@@ -124,6 +124,7 @@ public final class LavaConfig {
                 clamp(config.getInt("arenaSelection.treeCheckRadius", 32), 0, 256),
                 clamp(config.getInt("arenaSelection.villageSearchRadiusChunks", 320), 1, 2000),
                 clamp(config.getInt("arenaSelection.villageSearchAttempts", 12), 0, 200),
+                config.getBoolean("arenaSelection.biomeWhitelistEnabled", true),
                 biomes(config.getStringList("arenaSelection.biomeWhitelist")));
 
         Performance performance = new Performance(
@@ -315,6 +316,7 @@ public final class LavaConfig {
                                          int treeCheckRadius,
                                          int villageSearchRadiusChunks,
                                          int villageSearchAttempts,
+                                         boolean biomeWhitelistEnabled,
                                          Set<Biome> biomeWhitelist) {
         ArenaSelectionSettings normalized() {
             return new ArenaSelectionSettings(minDistanceFromLobby,
@@ -325,6 +327,7 @@ public final class LavaConfig {
                     treeCheckRadius,
                     villageSearchRadiusChunks,
                     villageSearchAttempts,
+                    biomeWhitelistEnabled,
                     biomeWhitelist);
         }
     }

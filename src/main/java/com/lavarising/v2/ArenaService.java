@@ -666,6 +666,10 @@ public final class ArenaService {
     }
 
     private boolean acceptedBiome(Biome biome) {
+        // Whitelist disabled: every biome is a valid arena (e.g. for a pre-generated world).
+        if (!plugin.settings().arenaSelection().biomeWhitelistEnabled()) {
+            return true;
+        }
         return plugin.settings().arenaSelection().biomeWhitelist().contains(biome)
                 || extraAcceptedBiomes.contains(biome);
     }

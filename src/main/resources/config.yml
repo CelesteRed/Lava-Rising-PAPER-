@@ -81,6 +81,9 @@ arenaSelection:
   treeCheckRadius: 32
   villageSearchRadiusChunks: 320
   villageSearchAttempts: 12
+  # When true, arenas may only spawn in the biomes listed below. Set to false to accept
+  # ANY biome (useful on a pre-generated world where the biomeWhitelist list is ignored).
+  biomeWhitelistEnabled: true
   biomeWhitelist:
     - FOREST
     - BIRCH_FOREST

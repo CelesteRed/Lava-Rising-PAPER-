@@ -5,7 +5,7 @@ $jar = "$env:USERPROFILE\.jdks\temurin-25.0.3\bin\jar.exe"
 $classpathArgs = Join-Path $PSScriptRoot 'v1\build\javac.args'
 $classpath = (Get-Content $classpathArgs)[3].Trim('"')
 $classes = Join-Path $PSScriptRoot 'build\classes'
-$outputJar = Join-Path $PSScriptRoot 'LavaRising-2.5.30-paper26.1.2.jar'
+$outputJar = Join-Path $PSScriptRoot 'LavaRising-2.5.31-paper26.1.2.jar'
 
 if (Test-Path $classes) {
     Remove-Item -Recurse -Force -LiteralPath $classes

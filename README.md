@@ -1,11 +1,11 @@
-# LavaRising 2.5.30
+# LavaRising 2.5.31
 
 Rebuilt Paper `26.1.2` lava rising plugin.
 
 ## Layout
 
 - `../v1` contains the archived 1.x project.
-- `v2` contains the rebuilt 2.5.30 project.
+- `v2` contains the rebuilt 2.5.31 project.
 
 ## Commands
 

@@ -49,7 +49,7 @@ public final class LavaRisingPlugin extends JavaPlugin {
             getLogger().warning("[LavaRising] Lobby dimension setup failed; plugin stays enabled. " + t);
         }
 
-        logGame("Enabled LavaRising 2.5.30. Lobby dimension=" + settings.lobby().dimensionKey()
+        logGame("Enabled LavaRising 2.5.31. Lobby dimension=" + settings.lobby().dimensionKey()
                 + ", minPlayers=" + settings.start().minPlayers() + ".");
     }
 

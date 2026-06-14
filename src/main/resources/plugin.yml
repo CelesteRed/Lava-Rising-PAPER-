@@ -1,12 +1,12 @@
 name: LavaRising
-version: 2.5.30
+version: 2.5.31
 main: com.lavarising.v2.LavaRisingPlugin
 api-version: '26.1.2'
 description: Rebuilt lava rising minigame with lobby, fresh arenas, deathmatch, revive, and optimized lava tasks
 
 commands:
   lava:
-    description: LavaRising 2.5.30 command
+    description: LavaRising 2.5.31 command
     usage: /lava <start|stop|status|bypass|revive|setlobby|set|reload>
     aliases:
       - lavarising
